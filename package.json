@@ -1,0 +1,24 @@
+{
+  "name": "vxassistbot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/entwickler42/vxAssistBot.git"
+  },
+  "keywords": [
+    "chatgpt",
+    "author",
+    "editor"
+  ],
+  "author": "Ralf Richter <entwickler42@gmail.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/entwickler42/vxAssistBot/issues"
+  },
+  "homepage": "https://github.com/entwickler42/vxAssistBot#readme"
+}
