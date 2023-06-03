@@ -20,5 +20,8 @@
   "bugs": {
     "url": "https://github.com/entwickler42/vxAssistBot/issues"
   },
-  "homepage": "https://github.com/entwickler42/vxAssistBot#readme"
+  "homepage": "https://github.com/entwickler42/vxAssistBot#readme",
+  "dependencies": {
+    "openai": "^3.2.1"
+  }
 }
