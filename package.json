@@ -22,6 +22,8 @@
   },
   "homepage": "https://github.com/entwickler42/vxAssistBot#readme",
   "dependencies": {
+    "colors": "^1.4.0",
+    "commander": "^10.0.1",
     "openai": "^3.2.1"
   }
 }
