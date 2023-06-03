@@ -1,6 +1,6 @@
-const { Console } = require('console');
 const fs = require('fs');
 const openai = require('openai');
+const { program } = require('commander');
 
 class AIInterface {
   constructor(apiKey) {
@@ -20,6 +20,7 @@ class AIInterface {
       top_p: 1.0,
       frequency_penalty: 0.0,
       presence_penalty: 0.0,
+      n: 1,
     });
 
     const content = response.choices[0].message.content;
@@ -53,11 +54,19 @@ function saveContentToFile(filename, content) {
 }
 
 async function main() {
+  program
+  .requiredOption('-w, --writer <writerPersonaFile>', 'Writer persona file')
+  .requiredOption('-e, --editor <editorPersonaFile>', 'Editor persona file')
+  .requiredOption('-n, --iterations <numIterations>', 'Number of iterations')
+  .option('-p, --parameter <param>', 'Additional parameter as JSON object')
+  .parse(process.argv);
+  
+  const writerPersonaFile = program.writer;
+  const editorPersonaFile = program.editor;
+  const iterations = parseInt(program.iterations, 10);
+  const parameter = program.parameter ? JSON.parse(program.parameter) : null;
   const apiKey = 'YOUR_OPENAI_API_KEY';
-  const writerPersonaFile = 'path/to/writer_persona.json';
-  const editorPersonaFile = 'path/to/editor_persona.json';
-  const title = 'My Fictional Story';
-  const iterations = 2; // Default number of iterations
+
 
   const writerPersona = readPersonaFile(writerPersonaFile);
   const editorPersona = readPersonaFile(editorPersonaFile);
