@@ -1,75 +1,8 @@
-const fs = require('fs');
-const { Configuration, OpenAIApi } = require('openai');
+import AIInterface from './AIInterface';
 const { program } = require('commander');
+const fs = require('fs');
 require('colors');
 
-class AIInterface {
-  constructor(apiKey) {
-    const configuration = new Configuration({
-      apiKey
-    });
-    this.client = new OpenAIApi(configuration);
-    this.messages = [];
-  }
-
-  async sleep(ms) {
-    return new Promise((resolve) => {
-      setTimeout(resolve, ms);
-    });
-  }
-
-  expandArguments(prompt, args) {
-
-    args = args || {};
-
-    return prompt.map(i => {
-      Object.keys(args).forEach(j => {
-        i = i.replace("{%" + j + "%}", args[j]);
-      });
-      return i;
-    });
-  };
-
-  async createCompletion(system, user, temperature, parameter) {
-    await this.sleep(21000);
-
-    system && this.expandArguments(system, parameter).forEach(i => {
-      this.messages.push({ role: 'system', content: i });
-    });
-    user && this.expandArguments(user, parameter).forEach(i => {
-      this.messages.push({ role: 'user', content: i });
-    });
-
-    let content = [];
-
-    try {
-      const response = await this.client.createChatCompletion({
-        model: 'gpt-3.5-turbo',
-        messages: [...this.messages],
-        temperature: temperature,
-        top_p: 1.0,
-        frequency_penalty: 0.0,
-        presence_penalty: 0.0,
-        n: 1,
-      });
-
-      response.data.choices.forEach(i => {
-        content.push(i.message.content);
-        this.messages.push(i.message);
-      });
-
-    } catch (error) {
-      if (error.response) {
-        console.log(error.response.status);
-        console.log(error.response.data);
-      } else {
-        console.log(error.message);
-      }
-    }
-
-    return content;
-  }
-}
 
 function readPersonaFile(filePath) {
   const personaData = fs.readFileSync(filePath, 'utf-8');
