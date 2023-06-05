@@ -11,13 +11,16 @@ class AIInterface {
         });        
         this.client = new OpenAIApi(configuration);
         this.messages = [];
+        this.lastQueryTimestamp = 0;
+        this.queryCount = 0;
+        this.queryLimit = 3;
+        this.queryInterval = 60000; // 60 seconds
     }
-
 
     readApiKey(filePath) {
         const apiKey = fs.readFileSync(filePath, 'utf-8');
         return apiKey;
-      }
+    }
 
     async sleep(ms) {
         return new Promise((resolve) => {
@@ -47,10 +50,21 @@ class AIInterface {
     }
 
     async createCompletion(user, temperature, parameter) {
-       // await this.sleep(20000);
-
-        if(!user || user.length === 0){
+        if (!user || user.length === 0) {
             return [];
+        }
+
+        const currentTime = Date.now();
+        const timeSinceLastQuery = currentTime - this.lastQueryTimestamp;
+
+        if (timeSinceLastQuery < this.queryInterval) {
+            if (this.queryCount >= this.queryLimit) {
+                const sleepTime = this.queryInterval - timeSinceLastQuery;
+                await this.sleep(sleepTime);
+                this.queryCount = 0;
+            }
+        } else {
+            this.queryCount = 0;
         }
 
         user.length && this.expandArguments(user, parameter).forEach(i => {
@@ -75,6 +89,8 @@ class AIInterface {
                 this.messages.push(i.message);
             });
 
+            this.lastQueryTimestamp = Date.now();
+            this.queryCount++;
         } catch (error) {
             if (error.response) {
                 console.log(error.response.status);
