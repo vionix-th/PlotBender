@@ -12,8 +12,8 @@
     "prompt": [
         [
             "Always replay in the format: COMMENT: [Your comment] TITLE: [The story title] STORY: [The story]",
+            "Always include latest draft of the story in your reply.",
             "Please consider and cooperate advice and suggestions.",
-            "Always generate the full updated story in your replies.",
             "The main character is a woman called {%CharacterName%}.",
             "Also consider the following keywords: {%WriterKeywords%}.",
             "{%CharacterName%} will be fighting ninja monks, the great chicken admiral Goregai and the armies of the dark buddha.",

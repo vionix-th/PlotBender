@@ -13,8 +13,8 @@ class AIInterface {
         this.messages = [];
         this.lastQueryTimestamp = 0;
         this.queryCount = 0;
-        this.queryLimit = 3;
-        this.queryInterval = 60000; // 60 seconds
+        this.queryLimit = 30;
+        this.queryInterval = 60000;
     }
 
     readApiKey(filePath) {
@@ -24,6 +24,7 @@ class AIInterface {
 
     async sleep(ms) {
         return new Promise((resolve) => {
+            console.log('Request limit reached. Taking a short break...');
             setTimeout(resolve, ms);
         });
     }
@@ -49,11 +50,7 @@ class AIInterface {
         }
     }
 
-    async createCompletion(user, temperature, parameter) {
-        if (!user || user.length === 0) {
-            return [];
-        }
-
+    async enforceLimits() {
         const currentTime = Date.now();
         const timeSinceLastQuery = currentTime - this.lastQueryTimestamp;
 
@@ -66,12 +63,25 @@ class AIInterface {
         } else {
             this.queryCount = 0;
         }
+    }
 
+    async accountLimits(){
+        this.lastQueryTimestamp = Date.now();
+        this.queryCount++;
+    }
+
+    async createCompletion(user, temperature, parameter) {
+        if (!user || user.length === 0) {
+            return [];
+        }
+        
+        await this.enforceLimits();
+        
         user.length && this.expandArguments(user, parameter).forEach(i => {
             this.messages.push({ role: 'user', content: i });
         });
-
-        let content = [];
+        
+        var content = [];
 
         try {
             const response = await this.client.createChatCompletion({
@@ -89,8 +99,7 @@ class AIInterface {
                 this.messages.push(i.message);
             });
 
-            this.lastQueryTimestamp = Date.now();
-            this.queryCount++;
+            this.accountLimits();
         } catch (error) {
             if (error.response) {
                 console.log(error.response.status);
