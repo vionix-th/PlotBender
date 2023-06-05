@@ -1,13 +1,23 @@
 const { Configuration, OpenAIApi } = require('openai');
+const fs = require('fs');
 
 class AIInterface {
-    constructor(apiKey) {
+    constructor(apiKey) {    
+        if(!apiKey){
+            apiKey = this.readApiKey('apikey.txt');
+        }
         const configuration = new Configuration({
             apiKey
-        });
+        });        
         this.client = new OpenAIApi(configuration);
         this.messages = [];
     }
+
+
+    readApiKey(filePath) {
+        const apiKey = fs.readFileSync(filePath, 'utf-8');
+        return apiKey;
+      }
 
     async sleep(ms) {
         return new Promise((resolve) => {
@@ -16,9 +26,6 @@ class AIInterface {
     }
 
     expandArguments(prompt, args) {
-
-        args = args || {};
-
         return prompt.map(i => {
             Object.keys(args).forEach(j => {
                 i = i.replace("{%" + j + "%}", args[j]);
@@ -27,19 +34,25 @@ class AIInterface {
         });
     };
 
-    async createCompletion(system, user, temperature, parameter) {
-        await this.sleep(20000);
+    assignRole(role, parameter) {
+        let messages = this.messages.filter(i => (i.role !== "system"));
+        
+        if(role && role.length){  
+            let system = []; 
+            this.expandArguments(role, parameter).forEach(i => {
+                system.push({ role: 'system', content: i });
+            });
+            this.messages = [...system, ...messages];
+        }
+    }
 
-        system = system || [];
-        user = user || [];
+    async createCompletion(user, temperature, parameter) {
+       // await this.sleep(20000);
 
-        if(system.length + user.length === 0){
-            return {};
+        if(!user || user.length === 0){
+            return [];
         }
 
-        system.length && this.expandArguments(system, parameter).forEach(i => {
-            this.messages.push({ role: 'system', content: i });
-        });
         user.length && this.expandArguments(user, parameter).forEach(i => {
             this.messages.push({ role: 'user', content: i });
         });

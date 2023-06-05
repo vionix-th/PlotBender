@@ -6,9 +6,7 @@
         "Pay special attention to battle and fighting scenes and ensure their detail and vividness"
     ],
     "prompt": [
-        [
-            "Confirm your role and wait for the first draft of the story."
-        ]
+        []
     ],
     "temperature": 0.5
 }
