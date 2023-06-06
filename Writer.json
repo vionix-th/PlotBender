@@ -11,6 +11,9 @@
     ],
     "prompt": [
         [
+            "Hello Alice, please introduce yourself."
+        ],
+        [
             "Always replay in the format: COMMENT: [Your comment] TITLE: [The story title] STORY: [The story]",
             "Always include latest draft of the story in your reply.",
             "Please consider and cooperate advice and suggestions.",
