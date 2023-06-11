@@ -1,6 +1,8 @@
 PlotBender.code-workspace
 package-lock.json
 
+*apikey*
+
 .vscode/
 node_modules/
 build/
