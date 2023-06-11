@@ -34,7 +34,7 @@ class AIInterface {
                 "prompt": [[]],
                 "persistentPrompt": []
             },
-            ...persona
+            persona
         };
     }
 
@@ -93,7 +93,10 @@ class AIInterface {
         var response = [];
 
         this.initializingAgent = 1;
-        this.persona = {...persona}
+
+        if (persona) {
+            this.persona = {...this.persona, ...persona};
+        }
 
         // Assign the persona to the agents  
         this.assignRole(persona.role, parameter);
