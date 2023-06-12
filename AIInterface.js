@@ -57,9 +57,20 @@ class AIInterface {
      * @returns {Array<string>} The expanded prompt.
      */
     expandArguments(prompt, args) {
+        const expand = arg => {
+            if(arg.startsWith("file://")){
+                arg = arg.replace("file://", "");
+                arg = fs.readFileSync(arg);
+            }
+
+            return arg;
+        } 
+
         return prompt.map(i => {
             Object.keys(args).forEach(j => {
-                i = i.replace("{%" + j + "%}", args[j]);
+                if (i.indexOf("{%" + j + "%}") > -1) {
+                    i = i.replace("{%" + j + "%}", expand(args[j]));
+                }
             });
             return i;
         });
