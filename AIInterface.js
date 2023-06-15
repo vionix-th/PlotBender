@@ -225,7 +225,7 @@ class AIInterface {
             openAi: new AIOpenAI(),
             huggingFace: new AIHuggingFace()
         };
-        const backend = backends['huggingFace']
+        const backend = backends[parameter.Text2ImageAPI ? parameter.Text2ImageAPI : 'huggingFace'];
         
         let retryCount = 0;
         while (retryCount < 3) {
@@ -240,18 +240,18 @@ class AIInterface {
         }
     }
 
-    async text2Speech(prompt) {
+    async text2Speech(prompt, parameter) {
 
         const backends = {
             localSystem: new AILocalSystem(),
             huggingFace: new AIHuggingFace()
         };
-        const backend = backends['localSystem']
+        const backend = backends[parameter.Text2SpeechAPI ? parameter.Text2SpeechAPI : 'localSystem']
 
         let retryCount = 0;
         while (retryCount < 3) {
             try {
-                return await backend.text2Speech(prompt);
+                return await backend.text2Speech(prompt, parameter);
             } catch (error) {
                 retryCount++;
                 if (retryCount >= 3) {

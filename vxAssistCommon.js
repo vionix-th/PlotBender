@@ -15,7 +15,7 @@ function generateFilename(writer, editor, title, suffix) {
     const writerName = writer.name.replace(/\s+/g, '_');
     const editorName = editor.name.replace(/\s+/g, '_');
     const filename = `${writerName}_${editorName}_${title}.${suffix}`;
-    return filename;
+    return sanitizeString(filename);
 }
 
 function saveContentToFile(filename, content) {
@@ -33,7 +33,28 @@ function readApiKey(filePath) {
     return apiKey;
 }
 
+function sanitizeString(input) {
+    const replacements = [
+      ['ä', 'ae'],
+      ['ö', 'oe'],
+      ['ü', 'ue'],
+      ['ß', 'ss'],
+      [' ', '_']
+    ];
+  
+    let sanitized = input;
+  
+    for (const [search, replace] of replacements) {
+      sanitized = sanitized.replace(new RegExp(search, 'gi'), replace);
+    }
+  
+    sanitized = sanitized.replace(/[^A-Za-z0-9_]/g, '');
+  
+    return sanitized;
+  }
+
 module.exports = {
+    sanitizeString,
     readPersonaFile,
     generateFilename,
     saveContentToFile,
