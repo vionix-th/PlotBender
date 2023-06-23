@@ -56,6 +56,7 @@ function sanitizeString(input) {
 function createDefaultParameters() {
     return {
         VisualStyle: null,
+        VisualStyleCharacters: null,
         VisualStyleNegative: null,
         // Text2ImageAPI: 'openAi',
         Text2ImageAPI: 'huggingFace',

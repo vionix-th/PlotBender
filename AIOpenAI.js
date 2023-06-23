@@ -4,8 +4,6 @@ const { readApiKey } = require("./vxAssistCommon");
 const fs = require('fs');
 require('colors');
 
-require('colors');
-
 class AIOpenAI {
     async createImage(ai, prompt, parameter) {
         const response = await ai.client.createImage({
