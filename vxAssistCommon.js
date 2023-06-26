@@ -75,7 +75,26 @@ function createDefaultParameters() {
     };
 }
 
+function extractJSON(text) {
+    const jsonRegex = /{(?:[^{}]|{[^{}]*})*}/; // Regular expression to match JSON object
+    const match = text.match(jsonRegex);
+
+    if (match) {
+        try {
+            const jsonObject = JSON.parse(match[0]);
+            return jsonObject;
+        } catch (error) {
+            console.error('Failed to parse JSON:', error);
+        }
+    } else {
+        console.error('No JSON object found in the text.');
+    }
+
+    return null;
+}
+
 module.exports = {
+    extractJSON,
     createDefaultParameters,
     sanitizeString,
     readPersonaFile,
