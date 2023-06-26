@@ -102,12 +102,10 @@ class vxAssistBotBot {
   }
 
   saveStorage() {
-    const aiParams = {};
-
     Object.keys(this.ai).forEach(i => {
       Object.keys(this.ai[i]).forEach(j => {
-        if(!aiParams[i]) { aiParams[i] = {}; }
-        aiParams[i][j] = this.ai[i][j].config;
+        if(!this.aiParams[i]) { this.aiParams[i] = {}; }
+        this.aiParams[i][j] = this.ai[i][j].config;
       })
     });
 
@@ -115,7 +113,7 @@ class vxAssistBotBot {
       botToken: this.botToken,
       whiteListedGroups: Array.from(this.whiteListedGroups),
       adminUsers: this.adminUsers,
-      aiParams,
+      aiParams: this.aiParams,
     };
     fs.writeFileSync(this.storageFile, JSON.stringify(storage, null, 2), 'utf8');
   }
@@ -299,12 +297,12 @@ class vxAssistBotBot {
   handleSetParameter(msg, params) {
     const { uniqueAi, config } = this.createUniqueAiForChat(msg);
 
-    if (!config[params[0]]) {
-      this.bot.sendMessage(msg.chat.id, `${params[0]} is not a valid option`, { message_thread_id: msg.message_thread_id });
-    } else {
-      config[params[0]] = params[1];
+    if (config.hasOwnProperty(params[0])) {
+      config[params[0]] = params.splice(1).join(' ');
       this.saveStorage();
-      this.bot.sendMessage(msg.chat.id, `${params[0]} was set to ${params[1]}`, { message_thread_id: msg.message_thread_id });
+      this.bot.sendMessage(msg.chat.id, `${params[0]} was set to ${config[params[0]]}`, { message_thread_id: msg.message_thread_id });
+    } else {
+      this.bot.sendMessage(msg.chat.id, `${params[0]} is not a valid option`, { message_thread_id: msg.message_thread_id });
     }
   }
 
