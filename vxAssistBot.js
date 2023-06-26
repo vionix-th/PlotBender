@@ -97,16 +97,27 @@ class vxAssistBotBot {
       this.botToken = storage.botToken;
       this.whiteListedGroups = new Set(storage.whiteListedGroups);
       this.adminUsers = storage.adminUsers;
+      this.aiParams = storage.aiParams;
     }
   }
 
   saveStorage() {
+    const aiParams = {};
+
+    Object.keys(this.ai).forEach(i => {
+      Object.keys(this.ai[i]).forEach(j => {
+        if(!aiParams[i]) { aiParams[i] = {}; }
+        aiParams[i][j] = this.ai[i][j].config;
+      })
+    });
+
     const storage = {
       botToken: this.botToken,
       whiteListedGroups: Array.from(this.whiteListedGroups),
       adminUsers: this.adminUsers,
+      aiParams,
     };
-    fs.writeFileSync(this.storageFile, JSON.stringify(storage), 'utf8');
+    fs.writeFileSync(this.storageFile, JSON.stringify(storage, null, 2), 'utf8');
   }
 
   isAdminUser(username) {
@@ -162,6 +173,10 @@ class vxAssistBotBot {
           VisualStyleNegative: null,
         }
       };
+
+    if(this.aiParams[msg.chat.id] && this.aiParams[msg.chat.id][aiId]) {
+      this.ai[msg.chat.id][aiId].config = this.aiParams[msg.chat.id][aiId];
+    }
 
     return this.ai[msg.chat.id][aiId];
   }
@@ -288,6 +303,7 @@ class vxAssistBotBot {
       this.bot.sendMessage(msg.chat.id, `${params[0]} is not a valid option`, { message_thread_id: msg.message_thread_id });
     } else {
       config[params[0]] = params[1];
+      this.saveStorage();
       this.bot.sendMessage(msg.chat.id, `${params[0]} was set to ${params[1]}`, { message_thread_id: msg.message_thread_id });
     }
   }
