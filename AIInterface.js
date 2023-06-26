@@ -12,13 +12,9 @@ class AIInterface {
      * Constructs an instance of the AIInterface.
      * @param {string} apiKey - The API key for the OpenAI GPT-3 API.
      */
-    constructor({ persona, apiKey }) {
-
-        if (!apiKey) {
-            apiKey = readApiKey('apikey.txt');
-        }
+    constructor() {
         const configuration = new Configuration({
-            apiKey
+            apiKey: readApiKey('apikey.txt')
         });
         this.client = new OpenAIApi(configuration);
         this.messages = [];
@@ -28,14 +24,11 @@ class AIInterface {
         this.queryInterval = 60000;
         this.initializingAgent = 0;
         this.persona = {
-            ...{
-                "name": "AIInterface",
-                "temperature": 0.5,
-                "role": [],
-                "prompt": [[]],
-                "persistentPrompt": []
-            },
-            persona
+            "name": "AIInterface",
+            "temperature": 0.5,
+            "role": [],
+            "prompt": [[]],
+            "persistentPrompt": []
         };
     }
 
@@ -156,6 +149,18 @@ class AIInterface {
         this.queryCount++;
     }
 
+    forget(lines) {
+        this.messages = this.messages.filter(i => {
+            for(let j of lines) {
+                if(i.content === j) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }
+
     /**
      * Creates a completion using the OpenAI GPT-3 API.
      * @param {Array<string>} user - The user's input messages.
@@ -226,7 +231,7 @@ class AIInterface {
             huggingFace: new AIHuggingFace()
         };
         const backend = backends[parameter.Text2ImageAPI];
-        
+
         let retryCount = 0;
         while (retryCount < 3) {
             try {
