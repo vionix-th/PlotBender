@@ -240,6 +240,8 @@ class AIInterface {
                 retryCount++;
                 if (retryCount >= 9) {
                     throw error;
+                }else{
+                    await this.sleep(1000);
                 }
             }
         }

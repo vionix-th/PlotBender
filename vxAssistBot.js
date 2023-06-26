@@ -104,7 +104,7 @@ class vxAssistBotBot {
 
   async executeCommand(msg, commandName, params) {
     const command = this.commandCallbacks[commandName];
-    
+
     if (command) {
       if (command.adminOnly && !this.isAdminUser(msg.from.username)) {
         return this.bot.sendMessage(msg.chat.id, 'You do not have permission to execute this command.', { message_thread_id: msg.message_thread_id });
@@ -119,9 +119,15 @@ class vxAssistBotBot {
 
     this.ai = this.ai ? this.ai : {};
     this.ai[msg.chat.id] = this.ai[msg.chat.id] ? this.ai[msg.chat.id] : {};
-    this.ai[msg.chat.id][aiId] = this.ai[msg.chat.id][aiId] 
-      ? this.ai[msg.chat.id][aiId] 
-      : this.initializeUniqueAiRoleForChat(msg, new AIInterface());
+    this.ai[msg.chat.id][aiId] = this.ai[msg.chat.id][aiId]
+      ? this.ai[msg.chat.id][aiId]
+      : {
+        uniqueAi: this.initializeUniqueAiRoleForChat(msg, new AIInterface()), config: {
+          alwaysReply: "YES",
+          Text2ImageAPI: "huggingFace",
+          Text2ImageModel: "dreamlike-art/dreamlike-anime-1.0",
+        }
+      };
 
     return this.ai[msg.chat.id][aiId];
   }
@@ -166,9 +172,9 @@ class vxAssistBotBot {
   async completeMessageConditional(msg) {
     if (!msg.text) { return }
 
-    const uniqueAi = this.createUniqueAiForChat(msg);    
+    const { uniqueAi, config } = this.createUniqueAiForChat(msg);
 
-    if (this.alwaysReply || msg.text.includes(`@${this.botInfo.username}`)) {
+    if (config.alwaysReply === "YES" || msg.text.includes(`@${this.botInfo.username}`)) {
       return uniqueAi.createCompletion([msg.text], {});
     } else {
       return this.completeResponseProbabilities(msg, uniqueAi).then(rating => {
@@ -226,13 +232,13 @@ class vxAssistBotBot {
         break;
     }
   }
-  
+
   handleGenerateImage(msg, params) {
-    const ai = this.createUniqueAiForChat(msg);
+    const { uniqueAi, config } = this.createUniqueAiForChat(msg);
 
     this.bot.sendMessage(msg.chat.id, `ok, give it a minute...`, { message_thread_id: msg.message_thread_id });
 
-    return ai.createImage(params.join(' '), { Text2ImageAPI: 'huggingFace', Text2ImageModel: 'dreamlike-art/dreamlike-anime-1.0' }).then((image) => {
+    return uniqueAi.createImage(params.join(' '), { Text2ImageAPI: config.Text2ImageAPI, Text2ImageModel: config.Text2ImageModel }).then((image) => {
       return this.bot.sendPhoto(msg.chat.id, image, { message_thread_id: msg.message_thread_id });
     }).catch(error => {
       if (error.response) {
