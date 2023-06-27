@@ -129,16 +129,18 @@ class vxAssistBotBot {
     this.ai[msg.chat.id][aiId] = this.ai[msg.chat.id][aiId]
       ? this.ai[msg.chat.id][aiId]
       : {
-        uniqueAi: this.initializeUniqueAiRoleForChat(msg, new AIInterface()), config: {
+        uniqueAi: this.initializeUniqueAiRoleForChat(msg, new AIInterface()), 
+        config: {
           aiEnabled: 'YES',
           alwaysReply: "YES",
           Text2ImageAPI: "huggingFace",
-          Text2ImageModel: "dreamlike-art/dreamlike-anime-1.0"
+          Text2ImageModel: "dreamlike-art/dreamlike-anime-1.0",
+          VideoScript: "./plotAgentRuth"
         }
       };
 
     if (this.aiParams[msg.chat.id] && this.aiParams[msg.chat.id][aiId]) {
-      this.ai[msg.chat.id][aiId].config = this.aiParams[msg.chat.id][aiId];
+      this.ai[msg.chat.id][aiId].config = {...this.ai[msg.chat.id][aiId].config, ...this.aiParams[msg.chat.id][aiId]};
     }
     if (this.aiContext[msg.chat.id] && this.aiContext[msg.chat.id][aiId]) {
       this.ai[msg.chat.id][aiId].uniqueAi.messages = [...this.aiContext[msg.chat.id][aiId]];
@@ -258,6 +260,7 @@ class vxAssistBotBot {
 
   handleGenerateVideo(msg, params) {
     try {
+      const {uniqueAi, config } = this.createUniqueAiForChat(msg);
       const args = params.join(' ');
 
       if (args.length === 0) {
@@ -269,7 +272,7 @@ class vxAssistBotBot {
       var filePath = './build/' + basename + `.txt`;
       var videoPath = './build/' + basename + `.Portrait.mp4`;
 
-      const p = spawn('zsh', ['./plotAgentRuth', filePath, args]);
+      const p = spawn('zsh', [config.VideoScript, filePath, args]);
 
       var state = 'record_video';
       const keepActionAliveTimer = setInterval(() => {
