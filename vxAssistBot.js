@@ -10,7 +10,7 @@ class vxAssistBotBot {
   constructor() {
     this.ai = {};
     this.aiParams = {};
-    this.aiContext = {};    
+    this.aiContext = {};
     this.bot = null;
     this.storageFile = 'botStorage.json';
     this.botToken = '';
@@ -18,66 +18,18 @@ class vxAssistBotBot {
     this.whiteListedGroups = new Set();
     this.adminUsers = [];
     this.commandCallbacks = {
-      help: {
-        adminOnly: false,
-        callback: this.handleHelp.bind(this),
-        description: 'List the available commands',
-      },
-      addadmin: {
-        adminOnly: true,
-        callback: this.handleAddAdmin.bind(this),
-        description: 'Grant admin privileges to a user',
-      },
-      removeadmin: {
-        adminOnly: true,
-        callback: this.handleRemoveAdmin.bind(this),
-        description: 'Revoke admin privileges for a user',
-      },
-      addwhitelistedgroup: {
-        adminOnly: true,
-        callback: this.handleAddWhiteListedGroup.bind(this),
-        description: 'Grant access to a group',
-      },
-      removewhitelistedgroup: {
-        adminOnly: true,
-        callback: this.handleRemoveWhiteListedGroup.bind(this),
-        description: 'Revoke access from a group',
-      },
-      setrole: {
-        adminOnly: true,
-        callback: this.handleSetRole.bind(this),
-        description: 'Set the AIs persona to a new role',
-      },
-      resetrole: {
-        adminOnly: true,
-        callback: this.handleResetRole.bind(this),
-        description: 'Restore default AI persona',
-      },
-      setparam: {
-        adminOnly: true,
-        callback: this.handleSetParameter.bind(this),
-        description: 'Setup the AIs parameters',
-      },
-      getparam: {
-        adminOnly: false,
-        callback: this.handleGetParameter.bind(this),
-        description: 'Get the AIs parameters',
-      },
-      genimg: {
-        adminOnly: false,
-        callback: this.handleGenerateImage.bind(this),
-        description: 'Create an image using generative AI',
-      },
-      genvid: {
-        adminOnly: false,
-        callback: this.handleGenerateVideo.bind(this),
-        description: 'Create a video using generative AI',
-      },
-      exec: {
-        adminOnly: true, /* KEEP THIS ADMIN ONLY */
-        callback: this.handleExecuteCommand.bind(this),
-        description: 'Execute a command',
-      },
+      addadmin: { adminOnly: true, callback: this.handleAddAdmin.bind(this), description: 'Grant admin privileges to a user' },
+      removeadmin: { adminOnly: true, callback: this.handleRemoveAdmin.bind(this), description: 'Revoke admin privileges for a user' },
+      addwhitelistedgroup: { adminOnly: true, callback: this.handleAddWhiteListedGroup.bind(this), description: 'Grant access to a group' },
+      removewhitelistedgroup: { adminOnly: true, callback: this.handleRemoveWhiteListedGroup.bind(this), description: 'Revoke access from a group' },
+      resetrole: { adminOnly: true, callback: this.handleResetRole.bind(this), description: 'Restore default AI persona' },
+      setrole: { adminOnly: true, callback: this.handleSetRole.bind(this), description: 'Set the AIs persona to a new role' },
+      setparam: { adminOnly: true, callback: this.handleSetParameter.bind(this), description: 'Setup the AIs parameters' },
+      exec: { adminOnly: true, /* KEEP THIS ADMIN ONLY */ callback: this.handleExecuteCommand.bind(this), description: 'Execute a command' },
+      help: { adminOnly: false, callback: this.handleHelp.bind(this), description: 'List the available commands' },
+      getparam: { adminOnly: false, callback: this.handleGetParameter.bind(this), description: 'Get the AIs parameters' },
+      genimg: { adminOnly: false, callback: this.handleGenerateImage.bind(this), description: 'Create an image using generative AI' },
+      genvid: { adminOnly: false, callback: this.handleGenerateVideo.bind(this), description: 'Create a video using generative AI' },
     };
   }
 
@@ -113,7 +65,7 @@ class vxAssistBotBot {
       this.botToken = storage.botToken;
       this.whiteListedGroups = new Set(storage.whiteListedGroups);
       this.adminUsers = storage.adminUsers;
-      this.aiParams = storage.aiParams;      
+      this.aiParams = storage.aiParams;
     }
   }
 
@@ -124,7 +76,7 @@ class vxAssistBotBot {
         this.aiParams[i][j] = this.ai[i][j].config;
 
         if (!this.aiContext[i]) { this.aiContext[i] = {}; }
-        this.aiContext[i][j] = [ ...this.ai[i][j].uniqueAi.messages ];
+        this.aiContext[i][j] = [...this.ai[i][j].uniqueAi.messages];
       })
     });
 
@@ -186,10 +138,10 @@ class vxAssistBotBot {
       };
 
     if (this.aiParams[msg.chat.id] && this.aiParams[msg.chat.id][aiId]) {
-      this.ai[msg.chat.id][aiId].config = this.aiParams[msg.chat.id][aiId];    
+      this.ai[msg.chat.id][aiId].config = this.aiParams[msg.chat.id][aiId];
     }
     if (this.aiContext[msg.chat.id] && this.aiContext[msg.chat.id][aiId]) {
-      this.ai[msg.chat.id][aiId].uniqueAi.messages = [ ...this.aiContext[msg.chat.id][aiId] ];
+      this.ai[msg.chat.id][aiId].uniqueAi.messages = [...this.aiContext[msg.chat.id][aiId]];
     }
 
     return this.ai[msg.chat.id][aiId];
@@ -236,7 +188,7 @@ class vxAssistBotBot {
     const { uniqueAi, config } = this.createUniqueAiForChat(msg);
 
     if (!msg.text) { return }
-    if (config.aiEnabled !== "YES") { return }    
+    if (config.aiEnabled !== "YES") { return }
 
     if (config.alwaysReply === "YES" || msg.text.includes(`@${this.botInfo.username}`)) {
       return uniqueAi.createCompletion([msg.text], {});
@@ -267,8 +219,8 @@ class vxAssistBotBot {
               this.bot.sendChatAction(msg.chat.id, 'typing', { message_thread_id: msg.message_thread_id });
             }, 5000);
 
-            this.completeMessageConditional(msg).then(response => {              
-              if (response) {                
+            this.completeMessageConditional(msg).then(response => {
+              if (response) {
                 this.bot.sendMessage(msg.chat.id, response.join('\n'), { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.id });
               }
             }).catch(error => {
@@ -301,12 +253,18 @@ class vxAssistBotBot {
       default:
         console.log(msg);
         break;
-    }    
+    }
   }
 
   handleGenerateVideo(msg, params) {
     try {
       const args = params.join(' ');
+
+      if (args.length === 0) {
+        this.bot.sendMessage(msg.chat.id, 'You must provide a title for the story. e.g. /genvid Ruth fighting for freedom', { message_thread_id: msg.message_thread_id });
+        return;
+      }
+
       var basename = path.basename(sanitizeString(args)).substring(0, 32);
       var filePath = './build/' + basename + `.txt`;
       var videoPath = './build/' + basename + `.Portrait.mp4`;
@@ -321,7 +279,7 @@ class vxAssistBotBot {
       p.stderr.on('data', data => { console.log(data.toString()); });
       p.stdout.on('data', data => { console.log(data.toString()); });
 
-      p.on('exit', code => {      
+      p.on('exit', code => {
         if (fs.existsSync(videoPath)) {
           state = 'upload_video';
           this.bot.sendVideo(msg.chat.id, videoPath,
@@ -399,7 +357,7 @@ class vxAssistBotBot {
 
     if (config.hasOwnProperty(params[0])) {
       config[params[0]] = params.splice(1).join(' ');
-      this.saveStorage();    
+      this.saveStorage();
       this.bot.sendMessage(msg.chat.id, `${params[0]} was set to ${config[params[0]]}`, { message_thread_id: msg.message_thread_id });
     } else {
       this.bot.sendMessage(msg.chat.id, `${params[0]} is not a valid option`, { message_thread_id: msg.message_thread_id });
