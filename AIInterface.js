@@ -6,6 +6,7 @@ const { readApiKey } = require("./vxAssistCommon");
 const { AIHuggingFace } = require("./AIHuggingFace");
 const { AILocalSystem } = require("./AILocalSystem");
 const { AIOpenAI } = require('./AIOpenAI');
+const {encode, decode} = require('gpt-3-encoder')
 
 class AIInterface {
     /**
@@ -13,10 +14,8 @@ class AIInterface {
      * @param {string} apiKey - The API key for the OpenAI GPT-3 API.
      */
     constructor() {
-        const configuration = new Configuration({
-            apiKey: readApiKey('apikey.txt')
-        });
-        this.client = new OpenAIApi(configuration);
+        this.apiKey = readApiKey('apikey.txt');
+        this.client = new OpenAIApi(new Configuration({ apiKey: this.apiKey }));
         this.messages = [];
         this.lastQueryTimestamp = 0;
         this.queryCount = 0;
@@ -151,14 +150,35 @@ class AIInterface {
 
     forget(lines) {
         this.messages = this.messages.filter(i => {
-            for(let j of lines) {
-                if(i.content === j) {
+            for (let j of lines) {
+                if (i.content === j) {
                     return false;
                 }
             }
 
             return true;
         });
+    }
+
+    wipeMemory() {
+        this.messages = [];
+    }
+
+    wipeContext() {
+        this.messages = this.messages.filter(i => (i.role === "system"));
+    }
+
+    reduceContext(maxTokens) {
+        const countTokens = (text) => {
+            const encoded = encode(text);
+            return encoded.length;
+        };
+
+        let totalTokens = this.messages.reduce((count, message) => count + countTokens(message.content), 0);
+        while (totalTokens > maxTokens) {
+          const removedMessage = this.messages.shift();
+          totalTokens -= countTokens(removedMessage.content);
+        }
     }
 
     /**
@@ -184,6 +204,8 @@ class AIInterface {
                 this.messages.push({ role: 'user', content: i });
             });
         }
+
+        this.reduceContext(4096);
 
         var content = [];
 
@@ -240,7 +262,7 @@ class AIInterface {
                 retryCount++;
                 if (retryCount >= 9) {
                     throw error;
-                }else{
+                } else {
                     await this.sleep(3000);
                 }
             }

@@ -26,8 +26,10 @@ class vxAssistBotBot {
       setparam: { adminOnly: true, callback: this.handleSetParameter.bind(this), description: 'Setup the AIs parameters' },
       getparam: { adminOnly: true, callback: this.handleGetParameter.bind(this), description: 'Get the AIs parameters' },
       exec: { adminOnly: true, /* KEEP THIS ADMIN ONLY */ callback: this.handleExecuteCommand.bind(this), description: 'Execute a command' },
-      resetrole: { adminOnly: false, callback: this.handleResetRole.bind(this), description: 'Restore default AI persona' },
+
       setrole: { adminOnly: false, callback: this.handleSetRole.bind(this), description: 'Set the AIs persona to a new role' },
+      resetrole: { adminOnly: false, callback: this.handleResetRole.bind(this), description: 'Restore default AI persona' },
+
       help: { adminOnly: false, callback: this.handleHelp.bind(this), description: 'List the available commands' },
       genimg: { adminOnly: false, callback: this.handleGenerateImage.bind(this), description: 'Create an image using generative AI' },
       genvid: { adminOnly: false, callback: this.handleGenerateVideo.bind(this), description: 'Create a video using generative AI' },
@@ -123,13 +125,21 @@ class vxAssistBotBot {
   }
 
   createUniqueAiForChat(msg) {
-    const aiId = msg.message_thread_id ? msg.message_thread_id : msg.chat.id;
+    const aiId = msg.chat.id;
 
+    if (
+      msg.reply_to_message_ids
+      && msg.message_thread_id
+      && msg.chat.is_forum
+    ) {
+      aiId = msg.message_thread_id;
+    }
+    
     this.ai = this.ai ? this.ai : {};
     this.ai[msg.chat.id] = this.ai[msg.chat.id] ? this.ai[msg.chat.id] : {};
-    this.ai[msg.chat.id][aiId] = this.ai[msg.chat.id][aiId]
-      ? this.ai[msg.chat.id][aiId]
-      : {
+    
+    if (!this.ai[msg.chat.id].hasOwnProperty(aiId)) {
+      this.ai[msg.chat.id][aiId] = {
         uniqueAi: this.initializeUniqueAiRoleForChat(msg, new AIInterface()),
         config: {
           aiEnabled: 'YES',
@@ -139,13 +149,14 @@ class vxAssistBotBot {
           Text2ImageModel: "dreamlike-art/dreamlike-anime-1.0",
           VideoScript: "./plotAgentRuth"
         }
-      };
+      }
 
-    if (this.aiParams[msg.chat.id] && this.aiParams[msg.chat.id][aiId]) {
-      this.ai[msg.chat.id][aiId].config = { ...this.ai[msg.chat.id][aiId].config, ...this.aiParams[msg.chat.id][aiId] };
-    }
-    if (this.aiContext[msg.chat.id] && this.aiContext[msg.chat.id][aiId]) {
-      this.ai[msg.chat.id][aiId].uniqueAi.messages = [...this.aiContext[msg.chat.id][aiId]];
+      if (this.aiParams[msg.chat.id] && this.aiParams[msg.chat.id][aiId]) {
+        this.ai[msg.chat.id][aiId].config = { ...this.ai[msg.chat.id][aiId].config, ...this.aiParams[msg.chat.id][aiId] };
+      }
+      if (this.aiContext[msg.chat.id] && this.aiContext[msg.chat.id][aiId]) {
+        this.ai[msg.chat.id][aiId].uniqueAi.messages = [...this.aiContext[msg.chat.id][aiId]];
+      }
     }
 
     return this.ai[msg.chat.id][aiId];
@@ -171,10 +182,10 @@ class vxAssistBotBot {
     const { ai, config } = this.createUniqueAiForChat(msg);
 
     var autoOpts = {}
-    
+
     if (config.aiUsesReplies === "YES") {
       autoOpts.reply_to_message_id = msg.message_id;
-      reply_markup = JSON.stringify({ force_reply: true, selective: true });
+      autoOpts.reply_markup = JSON.stringify({ force_reply: true, selective: true });
     }
 
     if (
@@ -242,57 +253,61 @@ class vxAssistBotBot {
   }
 
   handleMessage(msg) {
-    switch (msg.chat.type) {
-      case 'supergroup':
-      case 'group':
+    try {
+      switch (msg.chat.type) {
+        case 'supergroup':
+        case 'group':
 
-        if (this.whiteListedGroups.has(msg.chat.title)) {
-          const command = this.parseCommand(msg.text);
+          if (this.whiteListedGroups.has(msg.chat.title)) {
+            const command = this.parseCommand(msg.text);
 
-          if (command) {
-            const { commandName, params } = command;
-            return this.executeCommand(msg, commandName, params).catch(error => {
-              return this.send(msg, error.message);
-            });
+            if (command) {
+              const { commandName, params } = command;
+              return this.executeCommand(msg, commandName, params).catch(error => {
+                return this.send(msg, error.message);
+              });
+            } else {
+              const keepActionAliveTimer = setInterval(() => {
+                this.bot.sendChatAction(msg.chat.id, 'typing', { message_thread_id: msg.message_thread_id });
+              }, 5000);
+
+              return this.completeMessageConditional(msg).then(response => {
+                if (response) {
+                  return this.send(msg, response.join('\n'));
+                }
+              }).catch(error => {
+                return this.send(msg, error.message);
+              }).finally(() => {
+                clearInterval(keepActionAliveTimer);
+                this.saveStorage();
+              });
+            }
           } else {
-            const keepActionAliveTimer = setInterval(() => {
-              this.bot.sendChatAction(msg.chat.id, 'typing', { message_thread_id: msg.message_thread_id });
-            }, 5000);
-
-            return this.completeMessageConditional(msg).then(response => {
-              if (response) {
-                return this.send(msg, response.join('\n'));
-              }
-            }).catch(error => {
-              return this.send(msg, error.message);
-            }).finally(() => {
-              clearInterval(keepActionAliveTimer);
-              this.saveStorage();
+            this.send(msg, 'Forbidden');
+            this.bot.leaveChat(msg.chat.id).catch(error => {
+              // I don't care 
             });
           }
-        } else {
-          this.send(msg, 'Forbidden');
-          this.bot.leaveChat(msg.chat.id).catch(error => {
-            // I don't care 
-          });
-        }
 
-        break;
+          break;
 
-      case 'private':
-        if (this.isAdminUser(msg.from.username)) {
-          const command = this.parseCommand(msg.text);
-          if (command) {
-            const { commandName, params } = command;
-            this.executeCommand(msg, commandName, params).catch(error => {
-              this.send(msg, error.message);
-            });
+        case 'private':
+          if (this.isAdminUser(msg.from.username)) {
+            const command = this.parseCommand(msg.text);
+            if (command) {
+              const { commandName, params } = command;
+              this.executeCommand(msg, commandName, params).catch(error => {
+                this.send(msg, error.message);
+              });
+            }
           }
-        }
 
-      default:
-        console.log(msg);
-        break;
+        default:
+          console.log(msg);
+          break;
+      }
+    } catch (error) {
+      console.log(error.message);
     }
   }
 
@@ -378,6 +393,11 @@ class vxAssistBotBot {
     });
 
     return Promise.all(promises);
+  }
+
+  handleCleanAiContext(msg, params) {
+    const { uniqueAi, config } = this.createUniqueAiForChat(msg);
+    uniqueAi.wipeContext();
   }
 
   handleResetRole(msg, params) {
