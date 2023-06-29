@@ -23,12 +23,12 @@ class vxAssistBotBot {
       removeadmin: { adminOnly: true, callback: this.handleRemoveAdmin.bind(this), description: 'Revoke admin privileges for a user' },
       addwhitelistedgroup: { adminOnly: true, callback: this.handleAddWhiteListedGroup.bind(this), description: 'Grant access to a group' },
       removewhitelistedgroup: { adminOnly: true, callback: this.handleRemoveWhiteListedGroup.bind(this), description: 'Revoke access from a group' },
-      resetrole: { adminOnly: true, callback: this.handleResetRole.bind(this), description: 'Restore default AI persona' },
-      setrole: { adminOnly: true, callback: this.handleSetRole.bind(this), description: 'Set the AIs persona to a new role' },
       setparam: { adminOnly: true, callback: this.handleSetParameter.bind(this), description: 'Setup the AIs parameters' },
+      getparam: { adminOnly: true, callback: this.handleGetParameter.bind(this), description: 'Get the AIs parameters' },
       exec: { adminOnly: true, /* KEEP THIS ADMIN ONLY */ callback: this.handleExecuteCommand.bind(this), description: 'Execute a command' },
+      resetrole: { adminOnly: false, callback: this.handleResetRole.bind(this), description: 'Restore default AI persona' },
+      setrole: { adminOnly: false, callback: this.handleSetRole.bind(this), description: 'Set the AIs persona to a new role' },
       help: { adminOnly: false, callback: this.handleHelp.bind(this), description: 'List the available commands' },
-      getparam: { adminOnly: false, callback: this.handleGetParameter.bind(this), description: 'Get the AIs parameters' },
       genimg: { adminOnly: false, callback: this.handleGenerateImage.bind(this), description: 'Create an image using generative AI' },
       genvid: { adminOnly: false, callback: this.handleGenerateVideo.bind(this), description: 'Create a video using generative AI' },
     };
@@ -115,7 +115,7 @@ class vxAssistBotBot {
 
     if (command) {
       if (command.adminOnly && !this.isAdminUser(msg.from.username)) {
-        return this.bot.sendMessage(msg.chat.id, 'You do not have permission to execute this command.', { message_thread_id: msg.message_thread_id });
+        return this.send(msg, 'You do not have permission to execute this command.');
       } else {
         return command.callback(msg, params);
       }
@@ -134,6 +134,7 @@ class vxAssistBotBot {
         config: {
           aiEnabled: 'YES',
           alwaysReply: "YES",
+          aiUsesReplies: "YES",
           Text2ImageAPI: "huggingFace",
           Text2ImageModel: "dreamlike-art/dreamlike-anime-1.0",
           VideoScript: "./plotAgentRuth"
@@ -164,6 +165,29 @@ class vxAssistBotBot {
     ], {});
 
     return uniqueAi;
+  }
+
+  async send(msg, text, opts = {}) {
+    const { ai, config } = this.createUniqueAiForChat(msg);
+
+    var autoOpts = {}
+    
+    if (config.aiUsesReplies === "YES") {
+      autoOpts.reply_to_message_id = msg.message_id;
+      reply_markup = JSON.stringify({ force_reply: true, selective: true });
+    }
+
+    if (
+      !autoOpts.hasOwnProperty('reply_to_message_id')
+      && msg.message_thread_id
+      && msg.chat.is_forum
+    ) {
+      autoOpts.message_thread_id = msg.message_thread_id;
+    }
+
+    autoOpts = { ...autoOpts, ...opts }
+
+    return this.bot.sendMessage(msg.chat.id, text, autoOpts);
   }
 
   async completeResponseProbabilities(msg, uniqueAi) {
@@ -205,7 +229,8 @@ class vxAssistBotBot {
       )
     ) { return }
 
-    if (config.alwaysReply === "YES" || msg.text.includes(`@${this.botInfo.username}`)) {
+    if (config.alwaysReply === "YES" || msg.text.includes(`@${this.botInfo.username}`)
+      || (msg.reply_to_message && msg.reply_to_message.from.id === this.botInfo.id)) {
       return uniqueAi.createCompletion([msg.text], {});
     } else {
       return this.completeResponseProbabilities(msg, uniqueAi).then(rating => {
@@ -226,27 +251,27 @@ class vxAssistBotBot {
 
           if (command) {
             const { commandName, params } = command;
-            this.executeCommand(msg, commandName, params).catch(error => {
-              this.bot.sendMessage(msg.chat.id, error.message, { message_thread_id: msg.message_thread_id });
+            return this.executeCommand(msg, commandName, params).catch(error => {
+              return this.send(msg, error.message);
             });
           } else {
             const keepActionAliveTimer = setInterval(() => {
               this.bot.sendChatAction(msg.chat.id, 'typing', { message_thread_id: msg.message_thread_id });
             }, 5000);
 
-            this.completeMessageConditional(msg).then(response => {
+            return this.completeMessageConditional(msg).then(response => {
               if (response) {
-                this.bot.sendMessage(msg.chat.id, response.join('\n'), { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id });
+                return this.send(msg, response.join('\n'));
               }
             }).catch(error => {
-              this.bot.sendMessage(msg.chat.id, error.message, { message_thread_id: msg.message_thread_id, reply_to_message_id: message_id });
+              return this.send(msg, error.message);
             }).finally(() => {
               clearInterval(keepActionAliveTimer);
               this.saveStorage();
             });
           }
         } else {
-          this.bot.sendMessage(msg.chat.id, 'Not allowed', { message_thread_id: msg.message_thread_id });
+          this.send(msg, 'Forbidden');
           this.bot.leaveChat(msg.chat.id).catch(error => {
             // I don't care 
           });
@@ -260,7 +285,7 @@ class vxAssistBotBot {
           if (command) {
             const { commandName, params } = command;
             this.executeCommand(msg, commandName, params).catch(error => {
-              this.bot.sendMessage(msg.chat.id, error.message, { message_thread_id: msg.message_thread_id });
+              this.send(msg, error.message);
             });
           }
         }
@@ -276,8 +301,7 @@ class vxAssistBotBot {
     const args = params.join(' ');
 
     if (args.length === 0) {
-      this.bot.sendMessage(msg.chat.id, 'You must provide a title for the story. e.g. /genvid Ruth fighting for freedom', { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id });
-      return;
+      return this.send(msg, 'You must provide a title for the story. e.g. /genvid Ruth fighting for freedom');
     }
 
     var basename = path.basename(sanitizeString(args)).substring(0, 32);
@@ -297,13 +321,13 @@ class vxAssistBotBot {
     p.on('exit', code => {
       if (fs.existsSync(videoPath)) {
         state = 'upload_video';
-        this.bot.sendVideo(msg.chat.id, videoPath,
+        return this.bot.sendVideo(msg.chat.id, videoPath,
           { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id, caption: `Here is the video for: ${params.join(' ')}` },
           { filename: basename }).finally(() => {
             clearInterval(keepActionAliveTimer);
           });
       } else {
-        this.bot.sendMessage(msg.chat.id, `Failed to create video for: ${args}`, { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id }).finally(() => {
+        return this.send(msg, `Failed to create video for: ${args}`).finally(() => {
           clearInterval(keepActionAliveTimer);
         });
       }
@@ -311,10 +335,9 @@ class vxAssistBotBot {
   }
 
   handleExecuteCommand(msg, params) {
-    
+
     if (args.length === 0) {
-      this.bot.sendMessage(msg.chat.id, 'Missing argument. e.g. /exec ls -lah', { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id });
-      return;
+      return this.send(msg, 'Missing argument. e.g. /exec ls -lah');
     }
 
     const p = spawn(params[0], params.slice(1));
@@ -361,7 +384,7 @@ class vxAssistBotBot {
     const { uniqueAi, config } = this.createUniqueAiForChat(msg);
 
     this.initializeUniqueAiRoleForChat(msg, uniqueAi);
-    this.bot.sendMessage(msg.chat.id, 'AI persona reset to default', { message_thread_id: msg.message_thread_id });
+    return this.send(msg, 'AI persona reset to default');
   }
 
   handleSetRole(msg, params) {
@@ -369,7 +392,7 @@ class vxAssistBotBot {
 
     uniqueAi.assignRole([params.join('\n')], {});
 
-    this.bot.sendMessage(msg.chat.id, 'Assign a new persona to the AI', { message_thread_id: msg.message_thread_id });
+    return this.send(msg, 'Assign a new persona to the AI');
   }
 
   handleSetParameter(msg, params) {
@@ -378,9 +401,9 @@ class vxAssistBotBot {
     if (config.hasOwnProperty(params[0])) {
       config[params[0]] = params.splice(1).join(' ');
       this.saveStorage();
-      this.bot.sendMessage(msg.chat.id, `${params[0]} was set to ${config[params[0]]}`, { message_thread_id: msg.message_thread_id });
+      return this.send(msg, `${params[0]} was set to ${config[params[0]]}`);
     } else {
-      this.bot.sendMessage(msg.chat.id, `${params[0]} is not a valid option`, { message_thread_id: msg.message_thread_id });
+      return this.send(msg, `${params[0]} is not a valid option`);
     }
   }
 
@@ -392,15 +415,15 @@ class vxAssistBotBot {
       reply.push(`${key}: ${config[key]}`);
     })
 
-    this.bot.sendMessage(msg.chat.id, reply.join('\n'), { message_thread_id: msg.message_thread_id });
+    return this.send(msg, reply.join('\n'));
   }
 
   handleGenerateImage(msg, params) {
     const { uniqueAi, config } = this.createUniqueAiForChat(msg);
 
     if (params.join(' ').length === 0) {
-      return this.bot.sendMessage(msg.chat.id, 'You must provide a title for the story. e.g. /getimg Hello World. Use the reply function to provide a title or issue a new /getimg command',
-        { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id, reply_markup: JSON.stringify({ force_reply: true, selective: true }) }).then((nextMsg) => {
+      return this.send(msg, 'You must provide a title for the story. e.g. /getimg Hello World. Use the reply function to provide a title or issue a new /getimg command')
+        .then((nextMsg) => {
           if (!this.assistantIgnoreReply[nextMsg.chat.id]) { this.assistantIgnoreReply[nextMsg.chat.id] = {} }
           this.assistantIgnoreReply[nextMsg.chat.id][nextMsg.message_id] = nextMsg.message_thread_id ? nextMsg.message_thread_id : nextMsg.message_id;
           const replyId = this.bot.onReplyToMessage(nextMsg.chat.id, nextMsg.message_id, replyMsg => {
@@ -422,7 +445,7 @@ class vxAssistBotBot {
     return uniqueAi.createImage(params.join(' '), { Text2ImageAPI: config.Text2ImageAPI, Text2ImageModel: config.Text2ImageModel }).then((image) => {
       return this.bot.sendPhoto(msg.chat.id, image, { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id, caption: `Here is the image for: ${params.join(' ')}` });
     }).catch(error => {
-      this.bot.sendMessage(msg.chat.id, error.message, { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id });
+      return this.send(msg, error.message);
     }).finally(() => {
       clearInterval(keepActionAliveTimer);
     });
@@ -433,7 +456,7 @@ class vxAssistBotBot {
     for (const command of Object.keys(this.commandCallbacks)) {
       reply += `/${command}\n`;
     }
-    this.bot.sendMessage(msg.chat.id, reply, { message_thread_id: msg.message_thread_id });
+    return this.send(reply, 'Assign a new persona to the AI');
   }
 
   handleAddAdmin(msg, params) {
@@ -442,9 +465,9 @@ class vxAssistBotBot {
     if (!this.adminUsers.includes(username)) {
       this.adminUsers.push(username);
       this.saveStorage();
-      this.bot.sendMessage(msg.chat.id, `@${username} has been added as an admin user.`);
+      return this.send(msg, `@${username} has been added as an admin user.`);
     } else {
-      this.bot.sendMessage(msg.chat.id, `@${username} is already an admin user.`);
+      return this.send(msg, `@${username} is already an admin user.`);
     }
   }
 
@@ -455,9 +478,9 @@ class vxAssistBotBot {
     if (index !== -1) {
       this.adminUsers.splice(index, 1);
       this.saveStorage();
-      this.bot.sendMessage(msg.chat.id, `@${username} has been removed from admin users.`);
+      return this.send(msg, `@${username} has been removed from admin users.`);
     } else {
-      this.bot.sendMessage(msg.chat.id, `@${username} is not an admin user.`);
+      return this.send(msg, `@${username} is not an admin user.`);
     }
   }
 
@@ -466,7 +489,7 @@ class vxAssistBotBot {
 
     this.whiteListedGroups.add(groupName);
     this.saveStorage();
-    this.bot.sendMessage(msg.chat.id, `Group ${groupName} has been whitelisted.`);
+    return this.send(msg, `Group ${groupName} has been whitelisted.`);
   }
 
   handleRemoveWhiteListedGroup(msg, params) {
@@ -475,9 +498,9 @@ class vxAssistBotBot {
     if (this.whiteListedGroups.has(groupName)) {
       this.whiteListedGroups.delete(groupName);
       this.saveStorage();
-      this.bot.sendMessage(msg.chat.id, `Group ${groupName} has been removed from the whitelist.`);
+      return this.send(msg, `Group ${groupName} has been removed from the whitelist.`);
     } else {
-      this.bot.sendMessage(msg.chat.id, `Group ${groupName} is not whitelisted.`);
+      return this.send(msg, `Group ${groupName} is not whitelisted.`);
     }
   }
 }
