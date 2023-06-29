@@ -1,7 +1,4 @@
-const { Configuration, OpenAIApi } = require('openai');
 const axios = require('axios');
-const { readApiKey } = require("./vxAssistCommon");
-const fs = require('fs');
 require('colors');
 
 class AIOpenAI {

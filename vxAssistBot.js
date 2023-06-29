@@ -2,203 +2,31 @@ const { spawn } = require('child_process');
 const TelegramBot = require('node-telegram-bot-api');
 const { AIInterface } = require('./AIInterface.js');
 const { extractJSON, sanitizeString } = require('./vxAssistCommon.js');
+const { Ent42TelegramBot } = require('ent42/telegramBot.js');
 const fs = require('fs');
 const path = require('path');
 const fileType = require('file-type');
 
-class vxAssistBotBot {
+class vxAssistBotBot extends Ent42TelegramBot {
   constructor() {
-    this.ai = {};
-    this.aiParams = {};
-    this.aiContext = {};
-    this.bot = null;
-    this.storageFile = 'botStorage.json';
-    this.botToken = '';
-    this.alwaysReply = 1;
-    this.whiteListedGroups = new Set();
-    this.adminUsers = [];
-    this.assistantIgnoreReply = {};
-    this.commandCallbacks = {
-      addadmin: { adminOnly: true, callback: this.handleAddAdmin.bind(this), description: 'Grant admin privileges to a user' },
-      removeadmin: { adminOnly: true, callback: this.handleRemoveAdmin.bind(this), description: 'Revoke admin privileges for a user' },
-      addwhitelistedgroup: { adminOnly: true, callback: this.handleAddWhiteListedGroup.bind(this), description: 'Grant access to a group' },
-      removewhitelistedgroup: { adminOnly: true, callback: this.handleRemoveWhiteListedGroup.bind(this), description: 'Revoke access from a group' },
-      setparam: { adminOnly: true, callback: this.handleSetParameter.bind(this), description: 'Setup the AIs parameters' },
-      getparam: { adminOnly: true, callback: this.handleGetParameter.bind(this), description: 'Get the AIs parameters' },
-      exec: { adminOnly: true, /* KEEP THIS ADMIN ONLY */ callback: this.handleExecuteCommand.bind(this), description: 'Execute a command' },
+    super();
 
-      setrole: { adminOnly: false, callback: this.handleSetRole.bind(this), description: 'Set the AIs persona to a new role' },
-      resetrole: { adminOnly: false, callback: this.handleResetRole.bind(this), description: 'Restore default AI persona' },
+    this.registerCommand('addadmin', this.handleAddAdmin.bind(this), true, 'Grant admin privileges to a user');
+    this.registerCommand('removeadmin', this.handleRemoveAdmin.bind(this), true, 'Revoke admin privileges for a user');
+    this.registerCommand('addwhitelistedgroup', this.handleAddWhiteListedGroup.bind(this), true, 'Grant access to a group');
+    this.registerCommand('removewhitelistedgroup', this.handleRemoveWhiteListedGroup.bind(this), true, 'Revoke access from a group');
+    this.registerCommand('setparam', this.handleSetParameter.bind(this), true, 'Setup the AI\'s parameters');
+    this.registerCommand('getparam', this.handleGetParameter.bind(this), true, 'Get the AI\'s parameters');
+    this.registerCommand('exec', this.handleExecuteCommand.bind(this), true, 'Execute a command');
 
-      help: { adminOnly: false, callback: this.handleHelp.bind(this), description: 'List the available commands' },
-      genimg: { adminOnly: false, callback: this.handleGenerateImage.bind(this), description: 'Create an image using generative AI' },
-      genvid: { adminOnly: false, callback: this.handleGenerateVideo.bind(this), description: 'Create a video using generative AI' },
-    };
-  }
+    this.registerCommand('setrole', this.handleSetRole.bind(this), false, 'Set the AI\'s persona to a new role');
+    this.registerCommand('resetrole', this.handleResetRole.bind(this), false, 'Restore default AI persona');
+    this.registerCommand('wipecontext', this.handleWipeContext.bind(this), false, 'Removes all context from the current AI');
+    this.registerCommand('wipememory', this.handleWipeMemory.bind(this), false, 'Removes all context and persona from the current AI');
 
-  start() {
-    this.loadStorage();
-
-    if (!this.botToken) {
-      this.saveStorage();
-      console.error('No bot token available. Exiting...');
-      process.exit(1);
-    }
-
-    const bot = new TelegramBot(this.botToken, { polling: true });
-
-    bot.getMe().then((botInfo) => {
-      this.bot = bot;
-      this.botInfo = botInfo;
-      this.bot.on('message', (msg) => this.handleMessage(msg));
-      this.bot.on('polling_error', (error) => console.log(error));
-
-      this.bot.setMyCommands(Object.keys(this.commandCallbacks).map(i => {
-        return { command: i, description: this.commandCallbacks[i].description };
-      }), { scope: TelegramBot.BotCommandScopeChat });
-
-      console.log('Bot is running...');
-    });
-  }
-
-  loadStorage() {
-    if (fs.existsSync(this.storageFile)) {
-      const data = fs.readFileSync(this.storageFile, 'utf8');
-      const storage = JSON.parse(data);
-      this.botToken = storage.botToken;
-      this.whiteListedGroups = new Set(storage.whiteListedGroups);
-      this.adminUsers = storage.adminUsers;
-      this.aiParams = storage.aiParams;
-    }
-  }
-
-  saveStorage() {
-    Object.keys(this.ai).forEach(i => {
-      Object.keys(this.ai[i]).forEach(j => {
-        if (!this.aiParams[i]) { this.aiParams[i] = {}; }
-        this.aiParams[i][j] = this.ai[i][j].config;
-
-        if (!this.aiContext[i]) { this.aiContext[i] = {}; }
-        this.aiContext[i][j] = [...this.ai[i][j].uniqueAi.messages];
-      })
-    });
-
-    const storage = {
-      botToken: this.botToken,
-      whiteListedGroups: Array.from(this.whiteListedGroups),
-      adminUsers: this.adminUsers,
-      aiParams: this.aiParams,
-      aiContext: this.aiContext
-    };
-    fs.writeFileSync(this.storageFile, JSON.stringify(storage, null, 2), 'utf8');
-  }
-
-  isAdminUser(username) {
-    return this.adminUsers.includes(username);
-  }
-
-  parseCommand(text) {
-    if (text) {
-      const regex = /^\/([^\s]+)\s?(.*)$/;
-      const matches = text.match(regex);
-
-      if (matches) {
-        const commandName = matches[1].replace(`@${this.botInfo.username}`, '').toLowerCase();
-        const params = matches[2] ? matches[2].split(' ') : [];
-        return { commandName, params };
-      }
-    }
-
-    return null;
-  }
-
-  async executeCommand(msg, commandName, params) {
-    const command = this.commandCallbacks[commandName];
-
-    if (command) {
-      if (command.adminOnly && !this.isAdminUser(msg.from.username)) {
-        return this.send(msg, 'You do not have permission to execute this command.');
-      } else {
-        return command.callback(msg, params);
-      }
-    }
-  }
-
-  createUniqueAiForChat(msg) {
-    const aiId = msg.chat.id;
-
-    if (
-      msg.reply_to_message_ids
-      && msg.message_thread_id
-      && msg.chat.is_forum
-    ) {
-      aiId = msg.message_thread_id;
-    }
-    
-    this.ai = this.ai ? this.ai : {};
-    this.ai[msg.chat.id] = this.ai[msg.chat.id] ? this.ai[msg.chat.id] : {};
-    
-    if (!this.ai[msg.chat.id].hasOwnProperty(aiId)) {
-      this.ai[msg.chat.id][aiId] = {
-        uniqueAi: this.initializeUniqueAiRoleForChat(msg, new AIInterface()),
-        config: {
-          aiEnabled: 'YES',
-          alwaysReply: "YES",
-          aiUsesReplies: "YES",
-          Text2ImageAPI: "huggingFace",
-          Text2ImageModel: "dreamlike-art/dreamlike-anime-1.0",
-          VideoScript: "./plotAgentRuth"
-        }
-      }
-
-      if (this.aiParams[msg.chat.id] && this.aiParams[msg.chat.id][aiId]) {
-        this.ai[msg.chat.id][aiId].config = { ...this.ai[msg.chat.id][aiId].config, ...this.aiParams[msg.chat.id][aiId] };
-      }
-      if (this.aiContext[msg.chat.id] && this.aiContext[msg.chat.id][aiId]) {
-        this.ai[msg.chat.id][aiId].uniqueAi.messages = [...this.aiContext[msg.chat.id][aiId]];
-      }
-    }
-
-    return this.ai[msg.chat.id][aiId];
-  }
-
-  initializeUniqueAiRoleForChat(msg, uniqueAi) {
-    let topic = "General Discussion";
-
-    if (msg.reply_to_message && msg.reply_to_message.forum_topic_created) {
-      topic = msg.reply_to_message.forum_topic_created.name;
-    }
-
-    uniqueAi.assignRole([
-      `Your name is ${this.botInfo.first_name} ${this.botInfo.last_name}, Nickname ${this.botInfo.username}.`,
-      'You provide professional and concise advice to your audience and express yourself in an academic and formal manner.',
-      `You are an expert on ${topic} and related topics.`
-    ], {});
-
-    return uniqueAi;
-  }
-
-  async send(msg, text, opts = {}) {
-    const { ai, config } = this.createUniqueAiForChat(msg);
-
-    var autoOpts = {}
-
-    if (config.aiUsesReplies === "YES") {
-      autoOpts.reply_to_message_id = msg.message_id;
-      autoOpts.reply_markup = JSON.stringify({ force_reply: true, selective: true });
-    }
-
-    if (
-      !autoOpts.hasOwnProperty('reply_to_message_id')
-      && msg.message_thread_id
-      && msg.chat.is_forum
-    ) {
-      autoOpts.message_thread_id = msg.message_thread_id;
-    }
-
-    autoOpts = { ...autoOpts, ...opts }
-
-    return this.bot.sendMessage(msg.chat.id, text, autoOpts);
+    this.registerCommand('help', this.handleHelp.bind(this), false, 'List the available commands');
+    this.registerCommand('genimg', this.handleGenerateImage.bind(this), false, 'Create an image using generative AI');
+    this.registerCommand('genvid', this.handleGenerateVideo.bind(this), false, 'Create a video using generative AI');
   }
 
   async completeResponseProbabilities(msg, uniqueAi) {
@@ -216,26 +44,26 @@ class vxAssistBotBot {
     ];
 
     return uniqueAi.createCompletion(prompt, { message: msg.text }).then(response => {
-      uniqueAi.forget(prompt);
+      uniqueAi.wipeMemory(prompt);
 
       return extractJSON(response.join('\n'));
     });
   }
 
   async completeMessageConditional(msg) {
-    const { uniqueAi, config } = this.createUniqueAiForChat(msg);
+    const { uniqueAi, config } = this.uniqueAiForChat(msg);
 
     if (!msg.text) { return }
     if (config.aiEnabled !== "YES") { return }
     if (
       msg.reply_to_message
-      && this.assistantIgnoreReply[msg.chat.id]
-      && this.assistantIgnoreReply[msg.chat.id][msg.reply_to_message.message_id]
+      && this.aiIgnoreReply[msg.chat.id]
+      && this.aiIgnoreReply[msg.chat.id][msg.reply_to_message.message_id]
       && (
-        this.assistantIgnoreReply[msg.chat.id][msg.reply_to_message.message_id] === msg.reply_to_message.message_id
+        this.aiIgnoreReply[msg.chat.id][msg.reply_to_message.message_id] === msg.reply_to_message.message_id
         || (
           msg.reply_to_message.message_thread_id
-          && this.assistantIgnoreReply[msg.chat.id][msg.reply_to_message.message_id] === msg.reply_to_message.message_thread_id
+          && this.aiIgnoreReply[msg.chat.id][msg.reply_to_message.message_id] === msg.reply_to_message.message_thread_id
         )
       )
     ) { return }
@@ -312,7 +140,7 @@ class vxAssistBotBot {
   }
 
   handleGenerateVideo(msg, params) {
-    const { uniqueAi, config } = this.createUniqueAiForChat(msg);
+    const { uniqueAi, config } = this.uniqueAiForChat(msg);
     const args = params.join(' ');
 
     if (args.length === 0) {
@@ -395,20 +223,25 @@ class vxAssistBotBot {
     return Promise.all(promises);
   }
 
-  handleCleanAiContext(msg, params) {
-    const { uniqueAi, config } = this.createUniqueAiForChat(msg);
+  handleWipeMemory(msg, params) {
+    const { uniqueAi, config } = this.uniqueAiForChat(msg);
+    uniqueAi.wipeMemory();
+  }
+
+  handleWipeContext(msg, params) {
+    const { uniqueAi, config } = this.uniqueAiForChat(msg);
     uniqueAi.wipeContext();
   }
 
   handleResetRole(msg, params) {
-    const { uniqueAi, config } = this.createUniqueAiForChat(msg);
+    const { uniqueAi, config } = this.uniqueAiForChat(msg);
 
     this.initializeUniqueAiRoleForChat(msg, uniqueAi);
     return this.send(msg, 'AI persona reset to default');
   }
 
   handleSetRole(msg, params) {
-    const { uniqueAi, config } = this.createUniqueAiForChat(msg);
+    const { uniqueAi, config } = this.uniqueAiForChat(msg);
 
     uniqueAi.assignRole([params.join('\n')], {});
 
@@ -416,7 +249,7 @@ class vxAssistBotBot {
   }
 
   handleSetParameter(msg, params) {
-    const { uniqueAi, config } = this.createUniqueAiForChat(msg);
+    const { uniqueAi, config } = this.uniqueAiForChat(msg);
 
     if (config.hasOwnProperty(params[0])) {
       config[params[0]] = params.splice(1).join(' ');
@@ -428,7 +261,7 @@ class vxAssistBotBot {
   }
 
   handleGetParameter(msg, params) {
-    const { uniqueAi, config } = this.createUniqueAiForChat(msg);
+    const { uniqueAi, config } = this.uniqueAiForChat(msg);
     const reply = [];
 
     Object.keys(config).forEach(key => {
@@ -439,21 +272,21 @@ class vxAssistBotBot {
   }
 
   handleGenerateImage(msg, params) {
-    const { uniqueAi, config } = this.createUniqueAiForChat(msg);
+    const { uniqueAi, config } = this.uniqueAiForChat(msg);
 
     if (params.join(' ').length === 0) {
       return this.send(msg, 'You must provide a title for the story. e.g. /getimg Hello World. Use the reply function to provide a title or issue a new /getimg command')
         .then((nextMsg) => {
-          if (!this.assistantIgnoreReply[nextMsg.chat.id]) { this.assistantIgnoreReply[nextMsg.chat.id] = {} }
-          this.assistantIgnoreReply[nextMsg.chat.id][nextMsg.message_id] = nextMsg.message_thread_id ? nextMsg.message_thread_id : nextMsg.message_id;
+          if (!this.aiIgnoreReply[nextMsg.chat.id]) { this.aiIgnoreReply[nextMsg.chat.id] = {} }
+          this.aiIgnoreReply[nextMsg.chat.id][nextMsg.message_id] = nextMsg.message_thread_id ? nextMsg.message_thread_id : nextMsg.message_id;
           const replyId = this.bot.onReplyToMessage(nextMsg.chat.id, nextMsg.message_id, replyMsg => {
             this.bot.removeReplyListener(replyId);
-            delete this.assistantIgnoreReply[msg.chat.id][msg.message_id];
+            delete this.aiIgnoreReply[msg.chat.id][msg.message_id];
             return this.handleGenerateImage(msg, [replyMsg.text]);
           });
           setTimeout(() => {
             this.bot.removeReplyListener(replyId);
-            delete this.assistantIgnoreReply[msg.chat.id][msg.message_id];
+            delete this.aiIgnoreReply[msg.chat.id][msg.message_id];
           }, 180000);
         });
     }
