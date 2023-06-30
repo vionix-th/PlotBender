@@ -14,16 +14,17 @@ class vxAssistBotBot extends Ent42TelegramBot {
     this.registerAdminCommand('addwhitelistedgroup', this.handleAddWhiteListedGroup.bind(this), 'Grant access to a group');
     this.registerAdminCommand('removewhitelistedgroup', this.handleRemoveWhiteListedGroup.bind(this), 'Revoke access from a group');
     this.registerAdminCommand('exec', this.handleExecuteCommand.bind(this), 'Execute a command');
-    
+
     this.registerGroupAdminCommand('setparam', this.handleSetParameter.bind(this), 'Setup the AI\'s parameters');
     this.registerGroupAdminCommand('getparam', this.handleGetParameter.bind(this), 'Get the AI\'s parameters');
-    
+
     this.registerGroupAdminCommand('setrole', this.handleSetRole.bind(this), 'Set the AI\'s persona to a new role');
     this.registerGroupAdminCommand('resetrole', this.handleResetRole.bind(this), 'Restore default AI persona');
     this.registerGroupAdminCommand('wipecontext', this.handleWipeContext.bind(this), 'Removes all context from the current AI');
     this.registerGroupAdminCommand('wipememory', this.handleWipeMemory.bind(this), 'Removes all context and persona from the current AI');
-    
+
     this.registerGroupCommand('start', this.handleStart.bind(this), 'Start the bot (does nothing really)');
+    this.registerGroupCommand('intro', this.handleIntroduce.bind(this), 'Introduce the current AI role');
     this.registerGroupCommand('help', this.handleHelp.bind(this), 'List the available commands');
     this.registerGroupCommand('genimg', this.handleGenerateImage.bind(this), 'Create an image using generative AI');
     this.registerGroupCommand('genvid', this.handleGenerateVideo.bind(this), 'Create a video using generative AI');
@@ -304,7 +305,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
     });
   }
 
-  handleStart(msg, params){  
+  handleStart(msg, params) {
     return this.bot.sendMessage(msg.chat.id, 'By the Power of Grayskull ⚔️💪');
   }
 
@@ -315,6 +316,16 @@ class vxAssistBotBot extends Ent42TelegramBot {
     }
 
     return this.send(reply, 'Assign a new persona to the AI');
+  }
+
+  handleIntroduce(msg, params) {
+    return this.bot.sendMessage(msg.chat.id, `By the Power of Grayskull ⚔️ @${this.botInfo.username} 💪`)
+      .then(msg => {
+        const {uniqueAi, config} = this.uniqueAiForChat(msg);
+        return uniqueAi.createCompletion(["Please introduce yourself"], {}).then((completion) => {
+          return this.bot.sendMessage(msg.chat.id, completion.join('\n'));
+        })
+      });
   }
 
   handleAddAdmin(msg, params) {
