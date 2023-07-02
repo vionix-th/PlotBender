@@ -92,12 +92,12 @@ class vxAssistBotBot extends Ent42TelegramBot {
 
       return this.completeMessageConditional(msg).then(response => {
         if (response) {
-          return this.send(msg, response.join('\n'));
+          return this.send(msg, response.join('\n'), { parse_mode: 'MarkdownV2' });
         }
       });
     }
 
-    try {     
+    try {
       var keepActionAliveTimer = setInterval(() => {
         this.bot.sendChatAction(msg.chat.id, 'typing', { message_thread_id: msg.message_thread_id });
       }, 3000);
@@ -115,7 +115,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
           break;
 
         default:
-          console.log(msg);        
+          console.log(msg);
       }
 
       if (!allowed) {
@@ -130,7 +130,9 @@ class vxAssistBotBot extends Ent42TelegramBot {
         this.saveStorage();
       });
     } catch (error) {
+      clearInterval(keepActionAliveTimer);
       console.log(error.message);
+      throw error;
     }
   }
 
