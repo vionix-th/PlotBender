@@ -80,6 +80,22 @@ class vxAssistBotBot extends Ent42TelegramBot {
     }
   }
 
+  escapeMarkupV2String(text) {
+    const specialChars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+    let escapedText = '';
+  
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (specialChars.includes(char)) {
+        escapedText += `\\${char}`;
+      } else {
+        escapedText += char;
+      }
+    }
+  
+    return escapedText;
+  }
+
   handleMessage(msg) {
 
     const handleCommandOrComplete = async (msg) => {
@@ -92,16 +108,35 @@ class vxAssistBotBot extends Ent42TelegramBot {
 
       return this.completeMessageConditional(msg).then(response => {
         if (response) {
-          return this.send(msg, response.join('\n'), { parse_mode: 'MarkdownV2' });
+          let content = response.join('\n');          
+          let entities = content.split(/[`]{3}[^ \s]*/);        
+          let entitiesInfo = Array.from(content.matchAll(/([`]{3}[^ \s]*)/g), (m) => m[0]);
+
+          while(entitiesInfo.length < entities.length){ entitiesInfo.unshift('```'); }
+
+          entities = entities.map((entity, index) => {
+            const type = entitiesInfo[index] === '```' ? 'plain' : entitiesInfo[index].substring(3); 
+            
+            return {entity, type};
+          });
+
+          entities = entities.map((i) => {                        
+            if(i.type === 'plain') {
+              i.entity = this.escapeMarkupV2String(i.entity);
+            }else{
+              i.entity = '```' + i.type + i.entity + '```';
+            }
+
+            return i.entity;
+          });
+
+          // return this.send(msg, entities.join('\n'));
+          return this.send(msg, entities.join(''), { parse_mode: 'MarkdownV2' });
         }
       });
     }
 
     try {
-      var keepActionAliveTimer = setInterval(() => {
-        this.bot.sendChatAction(msg.chat.id, 'typing', { message_thread_id: msg.message_thread_id });
-      }, 3000);
-
       let allowed = false;
 
       switch (msg.chat.type) {
@@ -122,6 +157,10 @@ class vxAssistBotBot extends Ent42TelegramBot {
         this.bot.leaveChat(msg.chat.id).catch(error => { /* IGNORE */ });
         throw new Error("ACCESS DENIED");
       }
+
+      var keepActionAliveTimer = setInterval(() => {
+        this.bot.sendChatAction(msg.chat.id, 'typing', { message_thread_id: msg.message_thread_id });
+      }, 3000);
 
       return handleCommandOrComplete(msg).catch(error => {
         this.send(msg, error.message);
@@ -362,4 +401,4 @@ class vxAssistBotBot extends Ent42TelegramBot {
 }
 
 const bot = new vxAssistBotBot();
-bot.start();
+bot.main();
