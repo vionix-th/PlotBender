@@ -86,6 +86,15 @@ class AIInterface {
     }
   }
 
+  role() {
+    var role = this.messages.filter(i => (i.role === "system"));
+    role = role.map((i) => {
+      return i.content
+    });
+
+    return role;
+  }
+
   /**
    * Initializes the AI agents with the provided persona and parameters.
    * @param {object} persona - The persona for the agents.

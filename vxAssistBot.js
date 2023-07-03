@@ -19,6 +19,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
     this.registerGroupAdminCommand('getparam', this.handleGetParameter.bind(this), 'Get the AI\'s parameters');
 
     this.registerGroupAdminCommand('setrole', this.handleSetRole.bind(this), 'Set the AI\'s persona to a new role');
+    this.registerGroupAdminCommand('getrole', this.handleGetRole.bind(this), 'Get the AI\'s persona');
     this.registerGroupAdminCommand('resetrole', this.handleResetRole.bind(this), 'Restore default AI persona');
     this.registerGroupAdminCommand('wipecontext', this.handleWipeContext.bind(this), 'Removes all context from the current AI');
     this.registerGroupAdminCommand('wipememory', this.handleWipeMemory.bind(this), 'Removes all context and persona from the current AI');
@@ -80,23 +81,32 @@ class vxAssistBotBot extends Ent42TelegramBot {
     }
   }
 
-  escapeMarkupV2String(text) {
-    const specialChars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
-    let escapedText = '';
-  
-    for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      if (specialChars.includes(char)) {
-        escapedText += `\\${char}`;
-      } else {
-        escapedText += char;
-      }
-    }
-  
-    return escapedText;
-  }
-
   handleMessage(msg) {
+
+    const parseEntities = (content) => {
+      let entities = content.split(/[`]{3}[^ \s]*/);
+      let entitiesInfo = Array.from(content.matchAll(/([`]{3}[^ \s]*)/g), (m) => m[0]);
+
+      while (entitiesInfo.length < entities.length) { entitiesInfo.unshift('```'); }
+
+      entities = entities.map((entity, index) => {
+        const type = entitiesInfo[index] === '```' ? 'plain' : entitiesInfo[index].substring(3);
+
+        return { entity, type };
+      });
+
+      entities = entities.map((i) => {
+        if (i.type === 'plain') {
+          i.entity = this.escapeMarkupV2String(i.entity);
+        } else {
+          i.entity = '```' + i.type + i.entity + '```';
+        }
+
+        return i.entity;
+      });
+
+      return entities;
+    }
 
     const handleCommandOrComplete = async (msg) => {
       const command = this.parseCommand(msg.text);
@@ -108,29 +118,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
 
       return this.completeMessageConditional(msg).then(response => {
         if (response) {
-          let content = response.join('\n');          
-          let entities = content.split(/[`]{3}[^ \s]*/);        
-          let entitiesInfo = Array.from(content.matchAll(/([`]{3}[^ \s]*)/g), (m) => m[0]);
-
-          while(entitiesInfo.length < entities.length){ entitiesInfo.unshift('```'); }
-
-          entities = entities.map((entity, index) => {
-            const type = entitiesInfo[index] === '```' ? 'plain' : entitiesInfo[index].substring(3); 
-            
-            return {entity, type};
-          });
-
-          entities = entities.map((i) => {                        
-            if(i.type === 'plain') {
-              i.entity = this.escapeMarkupV2String(i.entity);
-            }else{
-              i.entity = '```' + i.type + i.entity + '```';
-            }
-
-            return i.entity;
-          });
-
-          // return this.send(msg, entities.join('\n'));
+          const entities = parseEntities(response.join('\n)'));
           return this.send(msg, entities.join(''), { parse_mode: 'MarkdownV2' });
         }
       });
@@ -163,7 +151,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
       }, 3000);
 
       return handleCommandOrComplete(msg).catch(error => {
-        this.send(msg, error.message);
+        return this.send(msg, error.message);
       }).finally(() => {
         clearInterval(keepActionAliveTimer);
         this.saveStorage();
@@ -279,9 +267,15 @@ class vxAssistBotBot extends Ent42TelegramBot {
   handleSetRole(msg, params) {
     const { uniqueAi, config } = this.uniqueAiForChat(msg);
 
-    uniqueAi.assignRole([params.join('\n')], {});
+    uniqueAi.assignRole([params.join(' ')], {});
 
     return this.send(msg, 'Assign a new persona to the AI');
+  }
+
+  handleGetRole(msg, params) {
+    const { uniqueAi, config } = this.uniqueAiForChat(msg);
+
+    return this.send(msg, uniqueAi.role().join('\n'));
   }
 
   handleSetParameter(msg, params) {
