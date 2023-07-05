@@ -14,6 +14,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
     this.registerAdminCommand('addwhitelistedgroup', this.handleAddWhiteListedGroup.bind(this), 'Grant access to a group');
     this.registerAdminCommand('removewhitelistedgroup', this.handleRemoveWhiteListedGroup.bind(this), 'Revoke access from a group');
     this.registerAdminCommand('exec', this.handleExecuteCommand.bind(this), 'Execute a command');
+    this.registerAdminCommand('halt', this.handleHalt.bind(this), 'Exits the Bot process');
 
     this.registerGroupAdminCommand('setparam', this.handleSetParameter.bind(this), 'Setup the AI\'s parameters');
     this.registerGroupAdminCommand('getparam', this.handleGetParameter.bind(this), 'Get the AI\'s parameters');
@@ -69,7 +70,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
       )
     ) { return }
 
-    if (config.alwaysReply === "YES" || msg.text.includes(`@${this.botInfo.username}`)
+    if (config.aiAlwaysReply === "YES" || msg.text.includes(`@${this.botInfo.username}`)
       || (msg.reply_to_message && msg.reply_to_message.from.id === this.botInfo.id)) {
       return uniqueAi.createCompletion([msg.text], {});
     } else {
@@ -201,9 +202,15 @@ class vxAssistBotBot extends Ent42TelegramBot {
     });
   }
 
+  handleHalt(msg, params) {
+    return this.send(msg, 'Halted').finally(() => {
+      process.exit();
+    });
+  }
+
   handleExecuteCommand(msg, params) {
 
-    if (args.length === 0) {
+    if (params.length === 0) {
       return this.send(msg, 'Missing argument. e.g. /exec ls -lah');
     }
 
@@ -255,12 +262,15 @@ class vxAssistBotBot extends Ent42TelegramBot {
   handleWipeContext(msg, params) {
     const { uniqueAi, config } = this.uniqueAiForChat(msg);
     uniqueAi.wipeContext();
+    this.saveStorage();
   }
 
   handleResetRole(msg, params) {
     const { uniqueAi, config } = this.uniqueAiForChat(msg);
 
     this.initializeUniqueAiRoleForChat(msg, uniqueAi);
+    this.saveStorage();
+
     return this.send(msg, 'AI persona reset to default');
   }
 
@@ -268,8 +278,9 @@ class vxAssistBotBot extends Ent42TelegramBot {
     const { uniqueAi, config } = this.uniqueAiForChat(msg);
 
     uniqueAi.assignRole([params.join(' ')], {});
+    this.saveStorage();
 
-    return this.send(msg, 'Assign a new persona to the AI');
+    return this.send(msg, 'New role was assigned to the AI!');
   }
 
   handleGetRole(msg, params) {
