@@ -24,6 +24,7 @@ class AIInterface {
     this.initializingAgent = 0;
     this.persona = {
       "name": "AIInterface",
+      "model": "gpt-3.5-turbo",
       "temperature": 0.5,
       "role": [],
       "prompt": [[]],
@@ -222,9 +223,9 @@ class AIInterface {
     while (retryCount < 3) {
       try {
         const response = await this.client.createChatCompletion({
-          model: 'gpt-3.5-turbo',
+          model: this.persona.model,
           messages: [...this.messages],
-          temperature: this.persona.temperature,
+          temperature: parseFloat(this.persona.temperature),
           top_p: 1.0,
           frequency_penalty: 0.0,
           presence_penalty: 0.0,
