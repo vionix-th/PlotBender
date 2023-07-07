@@ -84,6 +84,8 @@ class vxAssistBotBot extends Ent42TelegramBot {
 
   handleMessage(msg) {
 
+    this.updateCacheFromMessage(msg);
+
     const parseEntities = (content) => {
       let entities = content.split(/[`]{3}[^ \s]*/);
       let entitiesInfo = Array.from(content.matchAll(/([`]{3}[^ \s]*)/g), (m) => m[0]);
@@ -308,7 +310,9 @@ class vxAssistBotBot extends Ent42TelegramBot {
     const reply = [];
 
     Object.keys(config).forEach(key => {
-      reply.push(`${key}: ${config[key]}`);
+      if(typeof config[key] === 'string') {
+        reply.push(`${key}: ${config[key]}`);
+      }
     })
 
     return this.send(msg, reply.join('\n'));
