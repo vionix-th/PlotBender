@@ -226,7 +226,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
     p.stdout.on('data', data => { bStdout += data; });
 
     const promises = [];
-    
+
     p.on('exit', code => {
 
       if (bStdout.length > 0) {
@@ -294,15 +294,37 @@ class vxAssistBotBot extends Ent42TelegramBot {
   }
 
   handleSetParameter(msg, params) {
-    const { uniqueAi, config } = this.uniqueAiForChat(msg);
-
-    if (config.hasOwnProperty(params[0])) {
-      config[params[0]] = params.splice(1).join(' ');
-      this.saveStorage();
-      return this.send(msg, `${params[0]} was set to ${config[params[0]]}`);
-    } else {
-      return this.send(msg, `${params[0]} is not a valid option`);
+    if (!params?.length) {
+      return this.send(msg, 'Missing parameter');
     }
+
+    const selectedConfigs = [];
+
+    if (params[0].toLowerCase() == 'all') {
+      Object.keys(this.ai).forEach(i => {
+        Object.keys(this.ai[i]).forEach(j => {
+          selectedConfigs.push(this.ai[i][j].config);
+        })
+      });
+      Object.keys(this.aiParams).forEach(i => {
+        Object.keys(this.aiParams[i]).forEach(j => {
+          selectedConfigs.push(this.aiParams[i][j]);
+        })
+      });
+
+      params.shift();
+    } else {
+      const { uniqueAi, config } = this.uniqueAiForChat(msg);
+      selectedConfigs.push(config);
+    }
+
+    selectedConfigs.forEach(config => {
+      if (config.hasOwnProperty(params[0])) {
+        config[params[0]] = params[1];
+      }
+    });
+
+    this.saveStorage();
   }
 
   handleGetParameter(msg, params) {
@@ -310,7 +332,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
     const reply = [];
 
     Object.keys(config).forEach(key => {
-      if(typeof config[key] === 'string') {
+      if (typeof config[key] === 'string') {
         reply.push(`${key}: ${config[key]}`);
       }
     })
