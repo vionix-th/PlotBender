@@ -243,7 +243,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
 
 
         if(type.ext === 'txt' && inline){
-          promises.push(this.send(buff.toString()));
+          promises.push(msg, this.send(buff.toString()));
         }else{
           promises.push(
             this.bot.sendDocument(msg.chat.id, buff,
@@ -260,7 +260,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
         type = type ? type : { ext: 'txt', mime: 'text/plain' };
 
         if(type.ext === 'txt' && inline){
-          promises.push(this.send(buff.toString()));
+          promises.push(this.send(msg, buff.toString()));
         }else{
           promises.push(
             this.bot.sendDocument(msg.chat.id, buff,
