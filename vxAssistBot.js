@@ -217,6 +217,13 @@ class vxAssistBotBot extends Ent42TelegramBot {
       return this.send(msg, 'Missing argument. e.g. /exec ls -lah');
     }
 
+    var inline = false;
+
+    if (params[0].toLowerCase() == '-inline') {
+      inline = true;
+      params.shift();
+    }
+
     const p = spawn(params[0], params.slice(1));
 
     var bStdout = '';
@@ -234,12 +241,17 @@ class vxAssistBotBot extends Ent42TelegramBot {
         var type = fileType(buff);
         type = type ? type : { ext: 'txt', mime: 'text/plain' };
 
-        promises.push(
-          this.bot.sendDocument(msg.chat.id, buff,
-            { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id, caption: `Here is the output for command: ${params.join(' ')}` },
-            { filename: `stdout.${type.ext}`, contentType: `${type.mime}` }
-          )
-        );
+
+        if(type === 'txt' && inline){
+          promises.push(this.send(buff.toString()));
+        }else{
+          promises.push(
+            this.bot.sendDocument(msg.chat.id, buff,
+              { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id, caption: `Here is the output for command: ${params.join(' ')}` },
+              { filename: `stdout.${type.ext}`, contentType: `${type.mime}` }
+            )
+          );
+        }      
       }
 
       if (bStderr.length > 0) {
@@ -247,11 +259,15 @@ class vxAssistBotBot extends Ent42TelegramBot {
         var type = fileType(buff);
         type = type ? type : { ext: 'txt', mime: 'text/plain' };
 
-        promises.push(
-          this.bot.sendDocument(msg.chat.id, buff,
-            { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id, caption: `Here is the output for command: ${params.join(' ')}` },
-            { filename: `stderr.${type.ext}`, contentType: `${type.mime}` })
-        );
+        if(type === 'txt' && inline){
+          promises.push(this.send(buff.toString()));
+        }else{
+          promises.push(
+            this.bot.sendDocument(msg.chat.id, buff,
+              { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id, caption: `Here is the output for command: ${params.join(' ')}` },
+              { filename: `stderr.${type.ext}`, contentType: `${type.mime}` })
+          );
+        }
       }
     });
 
@@ -378,11 +394,11 @@ class vxAssistBotBot extends Ent42TelegramBot {
   }
 
   handleIntroduce(msg, params) {
-    return this.send(msg.chat.id, `By the Power of Grayskull ⚔️ @${this.botInfo.username} 💪`)
+    return this.send(msg, `By the Power of Grayskull ⚔️ @${this.botInfo.username} 💪`)
       .then(msg => {
         const { uniqueAi, config } = this.uniqueAiForChat(msg);
         return uniqueAi.createCompletion(["Please introduce yourself"], {}).then((completion) => {
-          return this.send(msg.chat.id, completion.join('\n'));
+          return this.send(msg, completion.join('\n'));
         })
       });
   }
