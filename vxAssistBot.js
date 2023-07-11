@@ -24,6 +24,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
     this.registerGroupAdminCommand('resetrole', this.handleResetRole.bind(this), 'Restore default AI persona');
     this.registerGroupAdminCommand('wipecontext', this.handleWipeContext.bind(this), 'Removes all context from the current AI');
     this.registerGroupAdminCommand('wipememory', this.handleWipeMemory.bind(this), 'Removes all context and persona from the current AI');
+    this.registerGroupAdminCommand('downloadmemory', this.handleDownloadMemory.bind(this), 'Get a copy of the current context');
 
     this.registerGroupCommand('start', this.handleStart.bind(this), 'Start the bot (does nothing really)');
     this.registerGroupCommand('intro', this.handleIntroduce.bind(this), 'Introduce the current AI role');
@@ -275,6 +276,15 @@ class vxAssistBotBot extends Ent42TelegramBot {
     });
 
     return Promise.all(promises);
+  }
+
+  handleDownloadMemory(msg, params) {
+    const { uniqueAi, config } = this.uniqueAiForChat(msg);
+    var buff = Buffer.from(JSON.stringify(uniqueAi.messages, null, 2));
+
+    return this.bot.sendDocument(msg.chat.id, buff,
+      { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id, caption: `Enjoy the memory` },
+      { filename: `${msg.from.username}-${msg.chat.title}-Memory.txt`, contentType: 'text/plain' }) 
   }
 
   handleWipeMemory(msg, params) {
