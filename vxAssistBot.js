@@ -16,7 +16,11 @@ class vxAssistBotBot extends Ent42TelegramBot {
     
     this.commands.addBotOwner('exec', this.handleExecuteCommand.bind(this), 'Execute a command');
     this.commands.addBotOwner('halt', this.handleHalt.bind(this), 'Exits the Bot process');
-
+    
+    this.commands.addGroupAdmin('start', this.handleStart.bind(this), 'Start the bot (does nothing really)');
+    this.commands.addGroupAdmin('intro', this.handleIntroduce.bind(this), 'Introduce the current AI role'); 
+    this.commands.addGroupAdmin('genimg', this.handleGenerateImage.bind(this), 'Create an image using generative AI');
+    this.commands.addGroupAdmin('genvid', this.handleGenerateVideo.bind(this), 'Create a video using generative AI');
     this.commands.addGroupAdmin('setparam', this.handleSetParameter.bind(this), 'Setup the AI\'s parameters');
     this.commands.addGroupAdmin('getparam', this.handleGetParameter.bind(this), 'Get the AI\'s parameters');
     this.commands.addGroupAdmin('setrole', this.handleSetRole.bind(this), 'Set the AI\'s persona to a new role');
@@ -25,9 +29,21 @@ class vxAssistBotBot extends Ent42TelegramBot {
     this.commands.addGroupAdmin('wipecontext', this.handleWipeContext.bind(this), 'Removes all context from the current AI');
     this.commands.addGroupAdmin('wipememory', this.handleWipeMemory.bind(this), 'Removes all context and persona from the current AI');
     this.commands.addGroupAdmin('downloadmemory', this.handleDownloadMemory.bind(this), 'Get a copy of the current context');
-
-    this.commands.addGroup('start', this.handleStart.bind(this), 'Start the bot (does nothing really)');
-    this.commands.addGroup('intro', this.handleIntroduce.bind(this), 'Introduce the current AI role');
+    
+    this.commands.addUser('start', this.handleStart.bind(this), 'Start the bot (does nothing really)');
+    this.commands.addUser('intro', this.handleIntroduce.bind(this), 'Introduce the current AI role');   
+    this.commands.addUser('genimg', this.handleGenerateImage.bind(this), 'Create an image using generative AI');
+    this.commands.addUser('genvid', this.handleGenerateVideo.bind(this), 'Create a video using generative AI');
+    this.commands.addUser('setparam', this.handleSetParameter.bind(this), 'Setup the AI\'s parameters');
+    this.commands.addUser('getparam', this.handleGetParameter.bind(this), 'Get the AI\'s parameters');
+    this.commands.addUser('setrole', this.handleSetRole.bind(this), 'Set the AI\'s persona to a new role');
+    this.commands.addUser('getrole', this.handleGetRole.bind(this), 'Get the AI\'s persona');
+    this.commands.addUser('resetrole', this.handleResetRole.bind(this), 'Restore default AI persona');
+    this.commands.addUser('wipecontext', this.handleWipeContext.bind(this), 'Removes all context from the current AI');
+    this.commands.addUser('wipememory', this.handleWipeMemory.bind(this), 'Removes all context and persona from the current AI');
+    this.commands.addUser('downloadmemory', this.handleDownloadMemory.bind(this), 'Get a copy of the current context');
+    
+    this.commands.addGroup('intro', this.handleIntroduce.bind(this), 'Introduce the current AI role'); 
     this.commands.addGroup('genimg', this.handleGenerateImage.bind(this), 'Create an image using generative AI');
     this.commands.addGroup('genvid', this.handleGenerateVideo.bind(this), 'Create a video using generative AI');
   }
