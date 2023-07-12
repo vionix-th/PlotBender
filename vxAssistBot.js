@@ -9,34 +9,34 @@ class vxAssistBotBot extends Ent42TelegramBot {
   constructor() {
     super();
 
-    this.registerAdminCommand('addadmin', this.handleAddAdmin.bind(this), 'Grant admin privileges to a user');
-    this.registerAdminCommand('removeadmin', this.handleRemoveAdmin.bind(this), 'Revoke admin privileges for a user');
-    this.registerAdminCommand('addwhitelistedgroup', this.handleAddWhiteListedGroup.bind(this), 'Grant access to a group');
-    this.registerAdminCommand('removewhitelistedgroup', this.handleRemoveWhiteListedGroup.bind(this), 'Revoke access from a group');
-    this.registerAdminCommand('exec', this.handleExecuteCommand.bind(this), 'Execute a command');
-    this.registerAdminCommand('halt', this.handleHalt.bind(this), 'Exits the Bot process');
+    this.commands.addBotAdmin('addadmin', this.handleAddAdmin.bind(this), 'Grant admin privileges to a user');
+    this.commands.addBotAdmin('removeadmin', this.handleRemoveAdmin.bind(this), 'Revoke admin privileges for a user');
+    this.commands.addBotAdmin('addwhitelistedgroup', this.handleAddWhiteListedGroup.bind(this), 'Grant access to a group');
+    this.commands.addBotAdmin('removewhitelistedgroup', this.handleRemoveWhiteListedGroup.bind(this), 'Revoke access from a group');
+    
+    this.commands.addBotOwner('exec', this.handleExecuteCommand.bind(this), 'Execute a command');
+    this.commands.addBotOwner('halt', this.handleHalt.bind(this), 'Exits the Bot process');
 
-    this.registerGroupAdminCommand('setparam', this.handleSetParameter.bind(this), 'Setup the AI\'s parameters');
-    this.registerGroupAdminCommand('getparam', this.handleGetParameter.bind(this), 'Get the AI\'s parameters');
+    this.commands.addGroupAdmin('setparam', this.handleSetParameter.bind(this), 'Setup the AI\'s parameters');
+    this.commands.addGroupAdmin('getparam', this.handleGetParameter.bind(this), 'Get the AI\'s parameters');
+    this.commands.addGroupAdmin('setrole', this.handleSetRole.bind(this), 'Set the AI\'s persona to a new role');
+    this.commands.addGroupAdmin('getrole', this.handleGetRole.bind(this), 'Get the AI\'s persona');
+    this.commands.addGroupAdmin('resetrole', this.handleResetRole.bind(this), 'Restore default AI persona');
+    this.commands.addGroupAdmin('wipecontext', this.handleWipeContext.bind(this), 'Removes all context from the current AI');
+    this.commands.addGroupAdmin('wipememory', this.handleWipeMemory.bind(this), 'Removes all context and persona from the current AI');
+    this.commands.addGroupAdmin('downloadmemory', this.handleDownloadMemory.bind(this), 'Get a copy of the current context');
 
-    this.registerGroupAdminCommand('setrole', this.handleSetRole.bind(this), 'Set the AI\'s persona to a new role');
-    this.registerGroupAdminCommand('getrole', this.handleGetRole.bind(this), 'Get the AI\'s persona');
-    this.registerGroupAdminCommand('resetrole', this.handleResetRole.bind(this), 'Restore default AI persona');
-    this.registerGroupAdminCommand('wipecontext', this.handleWipeContext.bind(this), 'Removes all context from the current AI');
-    this.registerGroupAdminCommand('wipememory', this.handleWipeMemory.bind(this), 'Removes all context and persona from the current AI');
-    this.registerGroupAdminCommand('downloadmemory', this.handleDownloadMemory.bind(this), 'Get a copy of the current context');
-
-    this.registerGroupCommand('start', this.handleStart.bind(this), 'Start the bot (does nothing really)');
-    this.registerGroupCommand('intro', this.handleIntroduce.bind(this), 'Introduce the current AI role');
-    this.registerGroupCommand('genimg', this.handleGenerateImage.bind(this), 'Create an image using generative AI');
-    this.registerGroupCommand('genvid', this.handleGenerateVideo.bind(this), 'Create a video using generative AI');
+    this.commands.addGroup('start', this.handleStart.bind(this), 'Start the bot (does nothing really)');
+    this.commands.addGroup('intro', this.handleIntroduce.bind(this), 'Introduce the current AI role');
+    this.commands.addGroup('genimg', this.handleGenerateImage.bind(this), 'Create an image using generative AI');
+    this.commands.addGroup('genvid', this.handleGenerateVideo.bind(this), 'Create a video using generative AI');
   }
 
   async completeResponseProbabilities(msg, uniqueAi) {
     const prompt = [
       'Rate a group chat messages probability in percent (0-100) and for each of the following statements:',
       '1. The message is directed to you',
-      '2. The message is directed to someboy else',
+      '2. The message is directed to somebody else',
       '3. The message is relevant',
       '4. You should respond to this message',
       '',

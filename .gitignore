@@ -6,7 +6,10 @@ package-lock.json
 .vscode/
 node_modules/
 !node_modules/ent42/
+!node_modules/ent42/telegramBot.js
+!node_modules/ent42/contextCommands.js
 build/
 .DS_Store
 botStorage.json
 botCaches.json
+
