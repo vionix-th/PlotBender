@@ -188,6 +188,21 @@ class AIInterface {
     return encoded.length;
   };
 
+  popDialog() {
+    var dialog = {};
+
+    var context = this.messages.filter(i => (i.role !== "system"));
+
+    if (context.length > 2) {
+      dialog.response = context.pop();      
+      dialog.message = context.pop();
+    }else{
+      throw new RangeError("Context is empty!");
+    }
+
+    return dialog;
+  }
+
   reduceContext(maxTokens) {
     let totalTokens = this.messages.reduce((count, message) => count + this.tokenize(message.content), 0);
 
@@ -199,7 +214,7 @@ class AIInterface {
     while (totalTokens > maxTokens) {
       const removedMessage = messages.shift();
 
-      debugOut(`\t> removing: ${removedMessage.role} / ${removedMessage.content.substring(0, 32)}...`);
+      debugOut(` removing: ${removedMessage.role} / ${removedMessage.content.substring(0, 32)}...`);
 
       totalTokens -= this.tokenize(removedMessage.content);
     }

@@ -54,6 +54,10 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       DESC_ABOUT: 'Read the about information',
       CMD_HELP: 'help',
       DESC_HELP: 'Read the help documentation',
+      CMD_REDUCE: 'reducecontext',
+      DESC_REDUCE: 'Remove N token from the current context',
+      CMD_POPDIALOG: 'popdialog',
+      DESC_POPDIALOG: 'Remove the latest Dialog from the current context',
     };
 
     this.commands.addBotAdmin(T.CMD_ADDADMIN, this.handleAddAdmin.bind(this), T.DESC_ADDADMIN);
@@ -72,7 +76,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       about += 'Author: ' + packageJson.author + '\n';
       about += 'Website: ' + packageJson.homepage;
 
-      this.send(msg, about).catch(ex => { debug(ex.message) });
+      this.send(msg, about).catch(ex => { debugOut(ex.message) });
     }, T.DESC_ABOUT);
 
     this.commands.addBotAdmin(T.CMD_HELP, (msg) => {
@@ -80,16 +84,16 @@ class vxAssistBotBot extends CuteAiTelegramBot {
 
       this.commands.forEachUniqueCommand((trigger, command) => {
 
-        if (command.adminOnly && !this.isBotAdmin(msg.from.id)) {          
-        }else if(command.ownerOnly && !this.isBotOwner(msg.from.id)) {          
-        }else {
-          helpText += '`'; 
-          helpText += '/' + trigger; 
-          helpText += '`'; 
+        if (command.adminOnly && !this.isBotAdmin(msg.from.id)) {
+        } else if (command.ownerOnly && !this.isBotOwner(msg.from.id)) {
+        } else {
+          helpText += '`';
+          helpText += '/' + trigger;
+          helpText += '`';
           helpText += '\n_' + escapeMarkupV2String(command.description) + '_\n\n';
-        }        
+        }
 
-      }).then(() => { 
+      }).then(() => {
         var markup = '';
 
         markup += '*Available Commands:*\n\n';
@@ -98,6 +102,31 @@ class vxAssistBotBot extends CuteAiTelegramBot {
         this.send(msg, markup, { parse_mode: 'MarkdownV2' }).catch(ex => { debugOut(ex.message) });
       });
     }, T.DESC_HELP);
+
+    this.commands.addBotAdmin(T.CMD_REDUCE, (msg, params) => {
+      const { uniqueAi, config } = this.uniqueAiForChat(msg);
+
+      var n = Math.min(Math.abs(parseInt(params[0] ?? 0), uniqueAi.persona.maxToken));
+
+      uniqueAi.reduceContext(n);
+
+      this.send(msg, `Current context successfully reduced to ${n} token 🧠`).catch(ex => {
+        debugOut(ex.message)
+      });
+    }, T.DESC_REDUCE);
+
+    this.commands.addBotAdmin(T.CMD_POPDIALOG, (msg, params) => {
+      const { uniqueAi, config } = this.uniqueAiForChat(msg);
+
+      var dlg = uniqueAi.popDialog();
+
+      debugOut('context removed > ' + dlg.message.content.substring(0, 20) + '...');
+      debugOut('context removed > ' + dlg.response.content.substring(0, 20) + '...');
+
+      this.send(msg, `Ok, the test dialog never happened 🧠`).catch(ex => {
+        debugOut(ex.message)
+      });
+    }, T.DESC_POPDIALOG);    
 
     this.commands.addBotOwner(T.CMD_EXEC, this.handleExecuteCommand.bind(this), T.DESC_EXEC);
     this.commands.addBotOwner(T.CMD_HALT, this.handleHalt.bind(this), T.DESC_HALT);
