@@ -25,7 +25,7 @@ class AIInterface {
     this.persona = {
       "name": "AIInterface",
       "model": "gpt-3.5-turbo",
-      "maxToken":  4096,
+      "maxToken": 4096,
       "temperature": 0.5,
       "role": [],
       "prompt": [[]],
@@ -193,10 +193,11 @@ class AIInterface {
 
     var context = this.messages.filter(i => (i.role !== "system"));
 
-    if (context.length > 2) {
-      dialog.response = context.pop();      
+    if (context.length > 1) {
+      dialog.response = context.pop();
       dialog.message = context.pop();
-    }else{
+      this.messages = [...this.messages.filter(i => (i.role === "system")), ...context];
+    } else {
       throw new RangeError("Context is empty!");
     }
 

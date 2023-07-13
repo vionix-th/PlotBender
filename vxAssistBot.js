@@ -109,21 +109,23 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       var n = Math.min(Math.abs(parseInt(params[0] ?? 0), uniqueAi.persona.maxToken));
 
       uniqueAi.reduceContext(n);
+      this.saveStorage();
 
       this.send(msg, `Current context successfully reduced to ${n} token 🧠`).catch(ex => {
         debugOut(ex.message)
       });
     }, T.DESC_REDUCE);
 
-    this.commands.addBotAdmin(T.CMD_POPDIALOG, (msg, params) => {
+    this.commands.addBotAdmin(T.CMD_POPDIALOG, (msg) => {
       const { uniqueAi, config } = this.uniqueAiForChat(msg);
 
       var dlg = uniqueAi.popDialog();
+      this.saveStorage();
 
       debugOut('context removed > ' + dlg.message.content.substring(0, 20) + '...');
       debugOut('context removed > ' + dlg.response.content.substring(0, 20) + '...');
 
-      this.send(msg, `Ok, the test dialog never happened 🧠`).catch(ex => {
+      this.send(msg, `Ok, the previous dialog never happened 🧠`).catch(ex => {
         debugOut(ex.message)
       });
     }, T.DESC_POPDIALOG);    
@@ -249,6 +251,10 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     }
   }
 
+  handleEditedMessage(msg) {
+    this.handleMessage(msg);
+  }
+
   handleGenerateVideo(msg, params) {
     const { uniqueAi, config } = this.uniqueAiForChat(msg);
     const args = params.join(' ');
@@ -369,6 +375,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
   handleWipeMemory(msg, params) {
     const { uniqueAi, config } = this.uniqueAiForChat(msg);
     uniqueAi.wipeMemory();
+    this.saveStorage();
   }
 
   handleWipeContext(msg, params) {
