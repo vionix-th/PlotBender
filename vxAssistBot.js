@@ -1,13 +1,13 @@
 const { spawn } = require('child_process');
-const { extractJSON, sanitizeString, debugOut } = require('./vxAssistCommon.js');
-const { Ent42TelegramBot } = require('ent42/telegramBot.js');
+const { escapeMarkupV2String, sanitizeString, debugOut } = require('./vxAssistCommon.js');
+const { CuteAiTelegramBot } = require('ent42/telegramBot.js');
 const fs = require('fs');
 const path = require('path');
 const fileType = require('file-type');
 const { debug } = require('console');
 const packageJson = require('./package.json');
 
-class vxAssistBotBot extends Ent42TelegramBot {
+class vxAssistBotBot extends CuteAiTelegramBot {
   constructor() {
     super();
 
@@ -86,7 +86,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
           helpText += '`'; 
           helpText += '/' + trigger; 
           helpText += '`'; 
-          helpText += '\n_' + this.escapeMarkupV2String(command.description) + '_\n\n';
+          helpText += '\n_' + escapeMarkupV2String(command.description) + '_\n\n';
         }        
 
       }).then(() => { 
@@ -133,57 +133,6 @@ class vxAssistBotBot extends Ent42TelegramBot {
     this.commands.addGroup(T.CMD_GENVID, this.handleGenerateVideo.bind(this), T.DESC_GENVID);
   }
 
-  async completeResponseProbabilities(msg, uniqueAi) {
-    const prompt = [
-      'Rate a group chat messages probability in percent (0-100) and for each of the following statements:',
-      '1. The message is directed to you',
-      '2. The message is directed to somebody else',
-      '3. The message is relevant',
-      '4. You should respond to this message',
-      '',
-      'Reply with only a JSON object using the format: { directed_at_me: probability, directed_at_someone: probability, relevant: probability, should_respond: probability }',
-      'If not enough information is available, set all probabilities to 0',
-      '',
-      'Message: {%message%}'
-    ];
-
-    return uniqueAi.createCompletion(prompt, { message: msg.text }).then(response => {
-      uniqueAi.wipeMemory(prompt);
-
-      return extractJSON(response.join('\n'));
-    });
-  }
-
-  async completeMessageConditional(msg) {
-    const { uniqueAi, config } = this.uniqueAiForChat(msg);
-
-    if (!msg.text) { return }
-    if (config.aiEnabled !== "YES") { return }
-    if (
-      msg.reply_to_message
-      && this.aiIgnoreReply[msg.chat.id]
-      && this.aiIgnoreReply[msg.chat.id][msg.reply_to_message.message_id]
-      && (
-        this.aiIgnoreReply[msg.chat.id][msg.reply_to_message.message_id] === msg.reply_to_message.message_id
-        || (
-          msg.reply_to_message.message_thread_id
-          && this.aiIgnoreReply[msg.chat.id][msg.reply_to_message.message_id] === msg.reply_to_message.message_thread_id
-        )
-      )
-    ) { return }
-
-    if (config.aiAlwaysReply === "YES" || msg.text.includes(`@${this.botInfo.username}`)
-      || (msg.reply_to_message && msg.reply_to_message.from.id === this.botInfo.id)) {
-      return uniqueAi.createCompletion([msg.text], {});
-    } else {
-      return this.completeResponseProbabilities(msg, uniqueAi).then(rating => {
-        if (rating.directed_at_me >= rating.directed_at_someone && rating.relevant >= 50) {
-          return uniqueAi.createCompletion([msg.text], {});
-        }
-      });
-    }
-  }
-
   handleMessage(msg) {
 
     this.updateCacheFromMessage(msg);
@@ -202,7 +151,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
           entity = content.substring(lPos, rPos);
           entities.push({ entity, type: entity.substring(3, entity.indexOf('\n')) });
         } else {
-          entities.push({ entity: this.escapeMarkupV2String(entity), type: 'plain' });
+          entities.push({ entity: escapeMarkupV2String(entity), type: 'plain' });
         }
         lPos = rPos;
         rPos = content.indexOf('```', rPos + 3);
@@ -210,7 +159,7 @@ class vxAssistBotBot extends Ent42TelegramBot {
 
       if (lPos < content.length) {
         let entity = content.substring(lPos);
-        entities.push({ entity: this.escapeMarkupV2String(entity), type: 'plain' })
+        entities.push({ entity: escapeMarkupV2String(entity), type: 'plain' })
       }
 
       return entities.map((i) => i.entity);;

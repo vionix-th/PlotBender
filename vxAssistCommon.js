@@ -88,6 +88,22 @@ function extractJSON(text) {
     return null;
 }
 
+function escapeMarkupV2String(text) {
+    const specialChars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!'];
+    let escapedText = '';
+
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      if (specialChars.includes(char)) {
+        escapedText += `\\${char}`;
+      } else {
+        escapedText += char;
+      }
+    }
+
+    return escapedText;
+  }
+
 async function sleep(ms) {
     return new Promise((resolve) => {
         setTimeout(resolve, ms);
@@ -106,6 +122,7 @@ function debugOut(msg) {
   }
 
 module.exports = {
+    escapeMarkupV2String,
     debugOut,
     sleep,
     extractJSON,
