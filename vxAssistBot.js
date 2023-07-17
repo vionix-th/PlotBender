@@ -60,6 +60,14 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       DESC_POPDIALOG: 'Remove the latest Dialog from the current context',
     };
 
+  /**
+   * Bot Owner
+   * Those commands might compromise system security and should be used with caution
+   */
+    this.commands.addBotOwner(T.CMD_EXEC, this.handleExecuteCommand.bind(this), T.DESC_EXEC);
+    this.commands.addBotOwner(T.CMD_HALT, this.handleHalt.bind(this), T.DESC_HALT);
+
+    /* Bot Admin */
     this.commands.addBotAdmin(T.CMD_ADDADMIN, this.handleAddAdmin.bind(this), T.DESC_ADDADMIN);
     this.commands.addBotAdmin(T.CMD_REMOVEADMIN, this.handleRemoveAdmin.bind(this), T.DESC_REMOVEADMIN);
     this.commands.addBotAdmin(T.CMD_ADDWHITELISTEDGROUP, this.handleAddWhiteListedGroup.bind(this), T.DESC_ADDWHITELISTEDGROUP);
@@ -85,7 +93,11 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       this.commands.forEachUniqueCommand((trigger, command) => {
 
         if (command.adminOnly && !this.isBotAdmin(msg.from.id)) {
+          // Do nothing, effectively hiding admin commands to regular users
+          // Warning! The commands are still callable and need to be secured elsewhere
         } else if (command.ownerOnly && !this.isBotOwner(msg.from.id)) {
+          // Do nothing, effectively hiding owner commands everyone else
+          // Warning! The commands are still callable and need to be secured elsewhere
         } else {
           helpText += '`';
           helpText += '/' + trigger;
@@ -130,38 +142,54 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       });
     }, T.DESC_POPDIALOG);    
 
-    this.commands.addBotOwner(T.CMD_EXEC, this.handleExecuteCommand.bind(this), T.DESC_EXEC);
-    this.commands.addBotOwner(T.CMD_HALT, this.handleHalt.bind(this), T.DESC_HALT);
+    /* Group Admin, Group & User */  
+    this.commands.addUser(
+      this.commands.addGroup(
+        this.commands.addGroupAdmin(T.CMD_INTRO, this.handleIntroduce.bind(this), T.DESC_INTRO)
+      )
+    );
+    this.commands.addUser(
+      this.commands.addGroup(
+        this.commands.addGroupAdmin(T.CMD_GENIMG, this.handleGenerateImage.bind(this), T.DESC_GENIMG)
+      )
+    );
+    this.commands.addUser(
+      this.commands.addGroup(
+        this.commands.addGroupAdmin(T.CMD_GENVID, this.handleGenerateVideo.bind(this), T.DESC_GENVID)
+      )
+    );
+    
+    /* Group Admin & User */
+    this.commands.addUser(
+      this.commands.addGroupAdmin(T.CMD_SETPARAM, this.handleSetParameter.bind(this), T.DESC_SETPARAM)
+    );
+    this.commands.addUser(
+      this.commands.addGroupAdmin(T.CMD_GETPARAM, this.handleGetParameter.bind(this), T.DESC_GETPARAM)
+    );
+    this.commands.addUser(
+      this.commands.addGroupAdmin(T.CMD_SETROLE, this.handleSetRole.bind(this), T.DESC_SETROLE)
+    );
+    this.commands.addUser(
+      this.commands.addGroupAdmin(T.CMD_GETROLE, this.handleGetRole.bind(this), T.DESC_GETROLE)
+    );
+    this.commands.addUser(
+      this.commands.addGroupAdmin(T.CMD_RESETROLE, this.handleResetRole.bind(this), T.DESC_RESETROLE)
+    );
+    this.commands.addUser(
+      this.commands.addGroupAdmin(T.CMD_WIPECONTEXT, this.handleWipeContext.bind(this), T.DESC_WIPECONTEXT)
+    );
+    this.commands.addUser(
+      this.commands.addGroupAdmin(T.CMD_WIPEMEMORY, this.handleWipeMemory.bind(this), T.DESC_WIPEMEMORY)
+    );
+    this.commands.addUser(
+      this.commands.addGroupAdmin(T.CMD_DOWNLOADMEMORY, this.handleDownloadMemory.bind(this), T.DESC_DOWNLOADMEMORY)
+    );    
 
-    this.commands.addGroupAdmin(T.CMD_START, this.handleStart.bind(this), T.DESC_START);
-    this.commands.addGroupAdmin(T.CMD_INTRO, this.handleIntroduce.bind(this), T.DESC_INTRO);
-    this.commands.addGroupAdmin(T.CMD_GENIMG, this.handleGenerateImage.bind(this), T.DESC_GENIMG);
-    this.commands.addGroupAdmin(T.CMD_GENVID, this.handleGenerateVideo.bind(this), T.DESC_GENVID);
-    this.commands.addGroupAdmin(T.CMD_SETPARAM, this.handleSetParameter.bind(this), T.DESC_SETPARAM);
-    this.commands.addGroupAdmin(T.CMD_GETPARAM, this.handleGetParameter.bind(this), T.DESC_GETPARAM);
-    this.commands.addGroupAdmin(T.CMD_SETROLE, this.handleSetRole.bind(this), T.DESC_SETROLE);
-    this.commands.addGroupAdmin(T.CMD_GETROLE, this.handleGetRole.bind(this), T.DESC_GETROLE);
-    this.commands.addGroupAdmin(T.CMD_RESETROLE, this.handleResetRole.bind(this), T.DESC_RESETROLE);
-    this.commands.addGroupAdmin(T.CMD_WIPECONTEXT, this.handleWipeContext.bind(this), T.DESC_WIPECONTEXT);
-    this.commands.addGroupAdmin(T.CMD_WIPEMEMORY, this.handleWipeMemory.bind(this), T.DESC_WIPEMEMORY);
-    this.commands.addGroupAdmin(T.CMD_DOWNLOADMEMORY, this.handleDownloadMemory.bind(this), T.DESC_DOWNLOADMEMORY);
-
-    this.commands.addUser(T.CMD_START, this.handleStart.bind(this), T.DESC_START);
-    this.commands.addUser(T.CMD_INTRO, this.handleIntroduce.bind(this), T.DESC_INTRO);
-    this.commands.addUser(T.CMD_GENIMG, this.handleGenerateImage.bind(this), T.DESC_GENIMG);
-    this.commands.addUser(T.CMD_GENVID, this.handleGenerateVideo.bind(this), T.DESC_GENVID);
-    this.commands.addUser(T.CMD_SETPARAM, this.handleSetParameter.bind(this), T.DESC_SETPARAM);
-    this.commands.addUser(T.CMD_GETPARAM, this.handleGetParameter.bind(this), T.DESC_GETPARAM);
-    this.commands.addUser(T.CMD_SETROLE, this.handleSetRole.bind(this), T.DESC_SETROLE);
-    this.commands.addUser(T.CMD_GETROLE, this.handleGetRole.bind(this), T.DESC_GETROLE);
-    this.commands.addUser(T.CMD_RESETROLE, this.handleResetRole.bind(this), T.DESC_RESETROLE);
-    this.commands.addUser(T.CMD_WIPECONTEXT, this.handleWipeContext.bind(this), T.DESC_WIPECONTEXT);
-    this.commands.addUser(T.CMD_WIPEMEMORY, this.handleWipeMemory.bind(this), T.DESC_WIPEMEMORY);
-    this.commands.addUser(T.CMD_DOWNLOADMEMORY, this.handleDownloadMemory.bind(this), T.DESC_DOWNLOADMEMORY);
-
-    this.commands.addGroup(T.CMD_INTRO, this.handleIntroduce.bind(this), T.DESC_INTRO);
-    this.commands.addGroup(T.CMD_GENIMG, this.handleGenerateImage.bind(this), T.DESC_GENIMG);
-    this.commands.addGroup(T.CMD_GENVID, this.handleGenerateVideo.bind(this), T.DESC_GENVID);
+    /**
+     *  User
+     *
+    */
+    this.commands.addUser(T.CMD_START, this.handleStart.bind(this), T.DESC_START)
   }
 
   handleMessage(msg) {
