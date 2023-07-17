@@ -60,10 +60,10 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       DESC_POPDIALOG: 'Remove the latest Dialog from the current context',
     };
 
-  /**
-   * Bot Owner
-   * Those commands might compromise system security and should be used with caution
-   */
+    /**
+     * Bot Owner
+     * Those commands might compromise system security and should be used with caution
+     */
     this.commands.addBotOwner(T.CMD_EXEC, this.handleExecuteCommand.bind(this), T.DESC_EXEC);
     this.commands.addBotOwner(T.CMD_HALT, this.handleHalt.bind(this), T.DESC_HALT);
 
@@ -140,25 +140,22 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       this.send(msg, `Ok, the previous dialog never happened 🧠`).catch(ex => {
         debugOut(ex.message)
       });
-    }, T.DESC_POPDIALOG);    
+    }, T.DESC_POPDIALOG);
 
-    /* Group Admin, Group & User */  
+    /* Group Admin, Group & User */
     this.commands.addUser(
       this.commands.addGroup(
         this.commands.addGroupAdmin(T.CMD_INTRO, this.handleIntroduce.bind(this), T.DESC_INTRO)
-      )
-    );
+    ));
     this.commands.addUser(
       this.commands.addGroup(
         this.commands.addGroupAdmin(T.CMD_GENIMG, this.handleGenerateImage.bind(this), T.DESC_GENIMG)
-      )
-    );
+    ));
     this.commands.addUser(
       this.commands.addGroup(
         this.commands.addGroupAdmin(T.CMD_GENVID, this.handleGenerateVideo.bind(this), T.DESC_GENVID)
-      )
-    );
-    
+    ));
+
     /* Group Admin & User */
     this.commands.addUser(
       this.commands.addGroupAdmin(T.CMD_SETPARAM, this.handleSetParameter.bind(this), T.DESC_SETPARAM)
@@ -183,11 +180,10 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     );
     this.commands.addUser(
       this.commands.addGroupAdmin(T.CMD_DOWNLOADMEMORY, this.handleDownloadMemory.bind(this), T.DESC_DOWNLOADMEMORY)
-    );    
+    );
 
     /**
      *  User
-     *
     */
     this.commands.addUser(T.CMD_START, this.handleStart.bind(this), T.DESC_START)
   }
