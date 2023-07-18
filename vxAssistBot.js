@@ -6,6 +6,9 @@ const path = require('path');
 const fileType = require('file-type');
 const packageJson = require('./package.json');
 
+const { Licensing } = require("ent42/license.js");
+const { debug } = require('console');
+
 class vxAssistBotBot extends CuteAiTelegramBot {
   constructor() {
     super();
@@ -25,6 +28,12 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       DESC_HALT: 'Exits the Bot process',
       CMD_UPDATE: 'update',
       DESC_UPDATE: 'git pull and exit',
+      CMD_ISSUELIC: 'issuelicense',
+      DESC_ISSUELIC: 'create a new license key',
+      CMD_REVOKELIC: 'revokelicense',
+      DESC_REVOKELIC: 'revoke a license key',
+      CMD_CLAIMLIC: 'claimlicense',
+      DESC_CLAIMLIC: 'link a license key to your account',
       CMD_START: 'start',
       DESC_START: 'Start the bot (does nothing really)',
       CMD_INTRO: 'intro',
@@ -68,6 +77,8 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     this.commands.addBotOwner(T.CMD_EXEC, this.handleExecuteCommand.bind(this), T.DESC_EXEC);
     this.commands.addBotOwner(T.CMD_HALT, this.handleHalt.bind(this), T.DESC_HALT);
     this.commands.addBotOwner(T.CMD_UPDATE, this.handleUpdate.bind(this), T.DESC_UPDATE);
+    this.commands.addBotOwner(T.CMD_ISSUELIC, this.handleIssueLicense.bind(this), T.DESC_ISSUELIC);
+    this.commands.addBotOwner(T.CMD_REVOKELIC, this.handleRevokeLicense.bind(this), T.DESC_REVOKELIC);
 
     /* Bot Admin */
     this.commands.addBotAdmin(T.CMD_ADDADMIN, this.handleAddAdmin.bind(this), T.DESC_ADDADMIN);
@@ -188,6 +199,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
      *  User
     */
     this.commands.addUser(T.CMD_START, this.handleStart.bind(this), T.DESC_START)
+    this.commands.addUser(T.CMD_CLAIMLIC, this.handleClaimLicense.bind(this), T.DESC_CLAIMLIC)
   }
 
   handleMessage(msg) {
@@ -249,6 +261,22 @@ class vxAssistBotBot extends CuteAiTelegramBot {
 
         case 'private':
           allowed = this.isBotAdmin(msg.from.id) || this.isBotOwner(msg.from.id);
+
+          if(!allowed){
+            allowed = msg.text.startsWith('/start') || msg.text.startsWith('/claimlicense');
+          }
+
+          if(!allowed){
+            let licence = Licensing.getByConsumer(msg.from.id);
+
+            if(licence) {
+              debugOut(`Licensed access for consumer ${JSON.stringify(msg.from)}`);
+              allowed = Licensing.validate(licence);
+            }else{
+              debugOut(`No license for consumer ${JSON.stringify(msg.from)}`);
+            }
+          }
+          
           break;
 
         default:
@@ -256,8 +284,17 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       }
 
       if (!allowed) {
-        this.bot.leaveChat(msg.chat.id).catch(error => { /* IGNORE */ });
-        throw new Error("ACCESS DENIED");
+        debugOut(`Access denied for ${JSON.stringify(msg.from)}`);
+
+        return this.send(msg, 'Access denied ✋').finally(() => {
+          if(msg.chat.type === 'supergroup' || msg.chat.type === 'group') {
+            debugOut(`Leaving unauthorized group ${JSON.stringify(msg.chat)}`);
+
+            return this.bot.leaveChat(msg.chat.id).catch(error => { 
+              debugOut(error.message);
+            });  
+          }
+        });
       }
 
       var keepActionAliveTimer = setInterval(() => {
@@ -322,7 +359,9 @@ class vxAssistBotBot extends CuteAiTelegramBot {
   handleHalt(msg, params) {
     return this.send(msg, 'Halted').finally(() => {
       this.saveStorage();
-      process.exit();
+      this.bot.stopPolling().finally(() => {
+        process.exit();  
+      });  
     });
   }
 
@@ -397,6 +436,43 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     return this.handleExecuteCommand(msg, ['-i', 'git', 'pull']).then(() => {
       return this.handleHalt(msg);
     });
+  }
+
+  handleIssueLicense(msg, params) {
+    var licence = Licensing.issue();
+    return this.send(msg, `${JSON.stringify(licence, null, 2)}`);
+  }
+
+  handleRevokeLicense(msg, params) {
+    const args = params.join(' ');
+
+    if (args.length < 1) {
+      return this.send(msg, 'usage: /revokelicense [license]');
+    }
+
+    var licence = Licensing.getById(params[0])
+
+    if(!licence) {
+      return this.send(msg, 'Invalid license 🤷‍♂️');
+    }
+
+    Licensing.revoke(licence);
+
+    return this.send(msg, `License ${licence.licId} revoked successfully 🚫`);
+  }
+
+  handleClaimLicense(msg, params) {
+    const args = params.join(' ');
+
+    if (args.length < 1) {
+      return this.send(msg, 'usage: /claimlicense [license]');
+    }
+    
+    if(!Licensing.claim(params[0], msg.from.id)){
+      return this.send(msg, `License claim unsuccessfully 😢`);
+    }
+
+    return this.send(msg, `License claimed successfully 🥳`);
   }
 
   handleDownloadMemory(msg, params) {
