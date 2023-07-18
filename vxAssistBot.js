@@ -268,7 +268,9 @@ class vxAssistBotBot extends CuteAiTelegramBot {
           allowed = this.isBotAdmin(msg.from.id) || this.isBotOwner(msg.from.id);
 
           if (!allowed) {
-            allowed = msg.text.startsWith('/start') || msg.text.startsWith('/claimlicense');
+            allowed = msg.text.startsWith('/start') 
+              || msg.text.startsWith('/userinfo')
+              || msg.text.startsWith('/claimlicense');
           }
 
           if (!allowed) {
@@ -330,6 +332,8 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       licence = { licId: '%Owner%' };
     }else if(this.isBotAdmin(msg.from.id)) {
       licence = { licId: '%Admin%' };
+    }else if(!licence) {
+      licence = { licId: 'UNLICENSED 🥲' };
     }
 
     if(msg.chat.type === 'private') {
