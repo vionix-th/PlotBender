@@ -4,7 +4,6 @@ const { CuteAiTelegramBot } = require('ent42/telegramBot.js');
 const fs = require('fs');
 const path = require('path');
 const fileType = require('file-type');
-const { debug } = require('console');
 const packageJson = require('./package.json');
 
 class vxAssistBotBot extends CuteAiTelegramBot {
@@ -77,7 +76,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     this.commands.addBotAdmin(T.CMD_REMOVEWHITELISTEDGROUP, this.handleRemoveWhiteListedGroup.bind(this), T.DESC_REMOVEWHITELISTEDGROUP);
 
     this.commands.addBotAdmin(T.CMD_VERSION, (msg) => {
-      this.send(msg, `${packageJson.version}`).catch(ex => { debug(ex.message) });
+      this.send(msg, `${packageJson.version}`).catch(ex => { debugLog(ex.message) });
     }, T.DESC_VERSION);
 
     this.commands.addBotAdmin(T.CMD_ABOUT, (msg) => {

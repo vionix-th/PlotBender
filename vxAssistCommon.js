@@ -93,16 +93,16 @@ function escapeMarkupV2String(text) {
     let escapedText = '';
 
     for (let i = 0; i < text.length; i++) {
-      const char = text[i];
-      if (specialChars.includes(char)) {
-        escapedText += `\\${char}`;
-      } else {
-        escapedText += char;
-      }
+        const char = text[i];
+        if (specialChars.includes(char)) {
+            escapedText += `\\${char}`;
+        } else {
+            escapedText += char;
+        }
     }
 
     return escapedText;
-  }
+}
 
 async function sleep(ms) {
     return new Promise((resolve) => {
@@ -110,20 +110,36 @@ async function sleep(ms) {
     });
 }
 
+function deepCopy(obj) {    
+    if (typeof obj === 'object' && obj !== null) {
+        const copy = Array.isArray(obj) ? [] : {};
+
+        for (let key in obj) {
+            copy[key] = deepCopy(obj[key]);
+        }
+
+        return copy;
+    }
+
+    return obj;
+}
+
+
 function debugOut(msg) {
     debugOut.debugOutCallCounter ??= 0;
-    
+
     let e = new Error();
-    let frame = e.stack.split("\n")[2]; 
+    let frame = e.stack.split("\n")[2];
     let lineNumber = frame.split(":").reverse()[1];
     let functionName = frame.split(" ")[5];
-    
+
     console.error(`${debugOut.debugOutCallCounter++} ${new Date().toISOString()} ${lineNumber}.${functionName}(...): ${msg}`);
-  }
+}
 
 module.exports = {
     escapeMarkupV2String,
     debugOut,
+    deepCopy,
     sleep,
     extractJSON,
     createDefaultParameters,

@@ -8,6 +8,8 @@ const { AIHuggingFace } = require("./AIHuggingFace");
 const { AILocalSystem } = require("./AILocalSystem");
 const { readApiKey, debugOut } = require("./vxAssistCommon");
 
+const { Licensing } = require("ent42/license.js");
+
 class AIInterface {
   /**
    * Constructs an instance of the AIInterface.
