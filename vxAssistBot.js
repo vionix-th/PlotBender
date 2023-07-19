@@ -73,7 +73,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       this.commands.addGroupAdmin(T.CMD_ABOUT, this.handleAbout.bind(this), T.DESC_ABOUT)
     );
     this.commands.addUser(
-      this.commands.addGroupAdmin(T.CMD_DOWNLOADMEMORY, this.handleUserInfo.bind(this), T.DESC_DOWNLOADMEMORY)
+      this.commands.addGroupAdmin(T.CMD_DOWNLOADMEMORY, this.handleDownloadMemory.bind(this), T.DESC_DOWNLOADMEMORY)
     );
     this.commands.addUser(
       this.commands.addGroupAdmin(T.CMD_REDUCE, this.handleReduce.bind(this), T.DESC_REDUCE)
