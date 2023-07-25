@@ -100,7 +100,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     }
 
     return this.completeMessageConditional(msg).then(response => {
-      if (response) {
+      if (response && response.length > 0) {
         const entities = parseEntities(response.join('\n)'));
         return this.send(msg, entities.join(''), { parse_mode: 'MarkdownV2' });
       }
@@ -116,7 +116,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
           this.bot.sendChatAction(msg.chat.id, 'typing', { message_thread_id: msg.message_thread_id });
         }, 3000);
 
-        return this.handleCommandOrComplete(msg, params).catch(error => {
+        return this.handleCommandOrComplete(msg).catch(error => {
           debugOut(error.message + "\n" + JSON.stringify(msg, null, 2));
           return this.send(msg, error.message).catch(error => {
             debugOut(error.message + "\n" + JSON.stringify(msg, null, 2));
