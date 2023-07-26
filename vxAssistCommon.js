@@ -174,7 +174,7 @@ async function sleep(ms) {
  * @param {any} obj - The object to create a deep copy of.
  * @returns {any} - The deep copy of the object.
  */
-function deepCopy(obj) {    
+function deepCopy(obj) {
     if (typeof obj === 'object' && obj !== null) {
         const copy = Array.isArray(obj) ? [] : {};
 
@@ -205,7 +205,26 @@ function debugOut(msg) {
     console.error(`${debugOut.debugOutCallCounter++} ${new Date().toISOString()} ${lineNumber}.${functionName}(...): ${msg}`);
 }
 
+/**
+ * Write data to a file. 
+ * The data is first written to a temporary file. 
+ * If a file wile the specified filename already exists, the existing file is renamed. 
+ * Eventually the temporary file is renamed to the specified filename.
+ */
+function writeFileSafely(filePath, data, opts = {}) {
+    const tempFilePath = `${filePath}.tmp`;
+    const bakFilePath = `${filePath}.previous`;
+
+    if (fs.existsSync(filePath)) {
+        fs.renameSync(filePath, bakFilePath)
+    }
+
+    fs.writeFileSync(tempFilePath, data, opts);
+    fs.renameSync(tempFilePath, filePath);
+}
+
 module.exports = {
+    writeFileSafely,
     escapeMarkupV2String,
     debugOut,
     deepCopy,
