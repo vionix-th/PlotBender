@@ -212,11 +212,14 @@ function debugOut(msg) {
  * Eventually the temporary file is renamed to the specified filename.
  */
 function writeFileSafely(filePath, data, opts = {}) {
-    const tempFilePath = `${filePath}.tmp`;
-    const bakFilePath = `${filePath}.previous`;
+    const bakDate = new Date();
+    const dayOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][bakDate.getDay()];
+    const hourOfDay = bakDate.getHours();
+    const bakFilePath = `${filePath}.${dayOfWeek}.${hourOfDay}.previous`;
+    const tempFilePath = `${filePath}.${dayOfWeek}.${hourOfDay}.tmp`;
 
     if (fs.existsSync(filePath)) {
-        fs.renameSync(filePath, bakFilePath)
+        fs.renameSync(filePath, bakFilePath);
     }
 
     fs.writeFileSync(tempFilePath, data, opts);

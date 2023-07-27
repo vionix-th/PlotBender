@@ -160,7 +160,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     about += 'Author: ' + this.packageJson.author + '\n';
     about += 'Website: ' + this.packageJson.homepage;
 
-    this.send(msg, about).catch(ex => { debugOut(ex.message) });
+    return about;
   }
 
   handleHelp(msg, params) {
@@ -187,7 +187,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       markup += '*Available Commands:*\n\n';
       markup += helpText;
 
-      this.send(msg, markup, { parse_mode: 'MarkdownV2' }).catch(ex => { debugOut(ex.message) });
+      return markup;
     });
   }
 
@@ -199,9 +199,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     uniqueAi.reduceContext(n);
     this.saveToStorage();
 
-    this.send(msg, `Current context successfully reduced to ${n} token 🧠`).catch(ex => {
-      debugOut(ex.message)
-    });
+    return `Current context successfully reduced to ${n} token 🧠`;
   }
 
   handlePopDialog(msg, params) {
@@ -213,9 +211,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     debugOut('context removed > ' + dlg.message.content.substring(0, 20) + '...');
     debugOut('context removed > ' + dlg.response.content.substring(0, 20) + '...');
 
-    this.send(msg, `Ok, the previous dialog never happened 🧠`).catch(ex => {
-      debugOut(ex.message)
-    });
+    return `Ok, the previous dialog never happened 🧠`;
   }
 
   handleGenerateVideo(msg, params) {
@@ -223,7 +219,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     const args = params.join(' ');
 
     if (args.length === 0) {
-      return this.send(msg, 'You must provide a title for the story. e.g. /genvid Ruth fighting for freedom');
+      return 'You must provide a title for the story. e.g. /genvid Ruth fighting for freedom'
     }
 
     var basename = path.basename(sanitizeString(args)).substring(0, 32);
@@ -245,13 +241,13 @@ class vxAssistBotBot extends CuteAiTelegramBot {
         state = 'upload_video';
         return this.bot.sendVideo(msg.chat.id, videoPath,
           { message_thread_id: msg.message_thread_id, reply_to_message_id: msg.message_id, caption: `Here is the video for: ${params.join(' ')}` },
-          { filename: basename }).finally(() => {
+          { filename: basename })
+          .finally(() => {
             clearInterval(keepActionAliveTimer);
           });
       } else {
-        return this.send(msg, `Failed to create video for: ${args}`).finally(() => {
-          clearInterval(keepActionAliveTimer);
-        });
+        clearInterval(keepActionAliveTimer);
+        return `Failed to create video for: ${args}`;
       }
     });
   }
@@ -339,39 +335,39 @@ class vxAssistBotBot extends CuteAiTelegramBot {
 
   handleIssueLicense(msg, params) {
     var licence = Licensing.issue();
-    return this.send(msg, `${JSON.stringify(licence, null, 2)}`);
+    return `${JSON.stringify(licence, null, 2)}`
   }
 
   handleRevokeLicense(msg, params) {
     const args = params.join(' ');
 
     if (args.length < 1) {
-      return this.send(msg, 'usage: /revokelicense [license]');
+      return 'usage: /revokelicense [license]';
     }
 
     var licence = Licensing.getById(params[0])
 
     if (!licence) {
-      return this.send(msg, 'Invalid license 🤷‍♂️');
+      return 'Invalid license 🤷‍♂️';
     }
 
     Licensing.revoke(licence);
 
-    return this.send(msg, `License ${licence.licId} revoked successfully 🚫`);
+    return `License ${licence.licId} revoked successfully 🚫`;
   }
 
   handleClaimLicense(msg, params) {
     const args = params.join(' ');
 
     if (args.length < 1) {
-      return this.send(msg, 'usage: /claimlicense [license]');
+      return 'usage: /claimlicense [license]';
     }
 
     if (!Licensing.claim(params[0], msg.from.id)) {
-      return this.send(msg, `License claim unsuccessfully 😢`);
+      return `License claim unsuccessfully 😢`;
     }
 
-    return this.send(msg, `License claimed successfully 🥳`);
+    return `License claimed successfully 🥳`;
   }
 
   handleDownloadMemory(msg, params) {
@@ -520,7 +516,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       welcome = `${welcome}` + '\n\n/claimlicense 111-1111-1111-1111111';
     }
 
-    return this.bot.sendMessage(msg.chat.id, welcome);
+    return welcome;
   }
 
   handleIntroduce(msg, params) {
