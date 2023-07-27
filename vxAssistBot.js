@@ -440,13 +440,21 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       selectedConfigs.push(config);
     }
 
+    var anyChange = false;
+
     selectedConfigs.forEach(config => {
       if (config.hasOwnProperty(params[0])) {
         config[params[0]] = params[1];
+        anyChange = true;
       }
     });
-
-    this.saveToStorage();
+    
+    if(anyChange){
+      this.saveToStorage();
+      return `${params[0]} successfully set to: ${params[1]}`;
+    }else{
+      return `Parameter ${params[0]} doesn't exist!`;
+    }
   }
 
   handleGetParameter(msg, params) {
@@ -459,7 +467,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       }
     })
 
-    return this.send(msg, reply.join('\n'));
+    return reply.join('\n');
   }
 
   handleGenerateImage(msg, params) {
