@@ -3,9 +3,11 @@
 build/
 
 *apikey*
-botStorage.json
-botCaches.json
-botLicenses.json
+botStorage.json*
+botCaches.json*
+botLicenses.json*
+aiFactoryStorage.json
+aiFactoryStorage.testing.json
 
 PlotBender.code-workspace
 package-lock.json
@@ -339,7 +341,4 @@ node_modules/yargs
 node_modules/yargs-parser
 node_modules/yocto-queue
 node_modules/.package-lock.json
-aiFactoryStorage.json
-aiFactoryStorage.testing.json
-botCaches.json.previous
-botStorage.json.previous
+

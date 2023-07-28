@@ -97,7 +97,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     if (command) {
       return this.executeCommand(msg, command.commandName, command.params)
         .then(response => {
-          if (typeof(response) === 'string') {
+          if (typeof (response) === 'string') {
             return this.reply(msg, response);
           }
         });
@@ -120,14 +120,9 @@ class vxAssistBotBot extends CuteAiTelegramBot {
         this.bot.sendChatAction(msg.chat.id, 'typing', { message_thread_id: msg.message_thread_id });
       }, 3000);
 
-      return this.handleCommandOrComplete(msg).catch(error => {
-        debugOut(error.message + "\n" + JSON.stringify(msg, null, 2));
-        return this.reply(msg, error.message + "\n" + JSON.stringify(msg, null, 2));
-      })
-        .finally(() => {
-          clearInterval(keepActionAliveTimer);
-          this.saveToStorage();
-        });
+      return this.handleCommandOrComplete(msg).finally(() => {
+        clearInterval(keepActionAliveTimer);
+      });
     } else {
       return this.reply(msg, this.T.MSG_ACCESS_DENIED);
     }
@@ -144,7 +139,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       licence = { licId: 'UNLICENSED' };
     }
 
-    const licenceValid = Licensing.validate(licence);     
+    const licenceValid = Licensing.validate(licence);
 
     if (msg.chat.type === 'private') {
       return `User ID: ${msg.from.id}\nLicense ID: ${licence.licId}\nLicense valid: ${licenceValid}`;
@@ -166,7 +161,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
   handleHelp(msg, params) {
     var helpText = '';
 
-    this.commands.forEachUniqueCommand((trigger, command) => {
+    return this.commands.forEachUniqueCommand((trigger, command) => {
 
       if (command.adminOnly && !this.isBotAdmin(msg.from.id)) {
         // Do nothing, effectively hiding admin commands to regular users
@@ -187,7 +182,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       markup += '*Available Commands:*\n\n';
       markup += helpText;
 
-      return markup;
+      return this.sendMarkdown(msg, markup);
     });
   }
 
@@ -219,7 +214,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     const args = params.join(' ');
 
     if (args.length === 0) {
-      return 'You must provide a title for the story. e.g. /genvid Ruth fighting for freedom'
+      return 'You must provide a title for the story. e.g. /genvid Ruth fighting for freedom';
     }
 
     var basename = path.basename(sanitizeString(args)).substring(0, 32);
@@ -256,14 +251,14 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     setTimeout(() => {
       this.shutdown();
     }, 3000);
-    
+
     return 'Shutdown will be triggered in 3 seconds...';
   }
 
   handleExecuteCommand(msg, params) {
 
     if (params.length === 0) {
-      return this.send(msg, 'Missing argument. e.g. /exec ls -lah');
+      return 'Missing argument. e.g. /exec ls -lah';
     }
 
     var inline = false;
@@ -335,7 +330,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
 
   handleIssueLicense(msg, params) {
     var licence = Licensing.issue();
-    return `${JSON.stringify(licence, null, 2)}`
+    return JSON.stringify(licence, null, 2);
   }
 
   handleRevokeLicense(msg, params) {
@@ -448,11 +443,11 @@ class vxAssistBotBot extends CuteAiTelegramBot {
         anyChange = true;
       }
     });
-    
-    if(anyChange){
+
+    if (anyChange) {
       this.saveToStorage();
       return `${params[0]} successfully set to: ${params[1]}`;
-    }else{
+    } else {
       return `Parameter ${params[0]} doesn't exist!`;
     }
   }
