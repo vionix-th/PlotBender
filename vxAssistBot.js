@@ -97,7 +97,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     if (command) {
       return this.executeCommand(msg, command.commandName, command.params)
         .then(response => {
-          if (response) {
+          if (typeof(response) === 'string') {
             return this.reply(msg, response);
           }
         });
@@ -524,7 +524,7 @@ class vxAssistBotBot extends CuteAiTelegramBot {
       .then(msg => {
         const { uniqueAi, config } = this.uniqueAiForChat(msg);
         return uniqueAi.createCompletion(["Please introduce yourself"], {}).then((completion) => {
-          return this.send(msg, completion.join('\n'));
+          return completion.join('\n');
         })
       });
   }
@@ -534,15 +534,15 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     const user = this.getCachedUserByName(username);
 
     if (!user) {
-      return this.send(msg, `${username} is unknown to this bot. Please have the user interact at least once first!`);
+      return `${username} is unknown to this bot. Please have the user interact at least once first!`;
     }
 
     if (!this.adminUsers.includes(user.id)) {
       this.adminUsers.push(user.id);
       this.saveToStorage();
-      return this.send(msg, `${username} has been added as an admin user.`);
+      return `${username} has been added as an admin user.`;
     } else {
-      return this.send(msg, `${username} is already an admin user.`);
+      return `${username} is already an admin user.`;
     }
   }
 
@@ -551,16 +551,16 @@ class vxAssistBotBot extends CuteAiTelegramBot {
     const user = this.getCachedUserByName(username);
 
     if (!user) {
-      return this.send(msg, `@${username} is unknown to this bot. Please have the user interact at least once first!`);
+      return `@${username} is unknown to this bot. Please have the user interact at least once first!`;
     }
 
     const index = this.adminUsers.indexOf(username);
     if (index !== -1) {
       this.adminUsers.splice(index, 1);
       this.saveToStorage();
-      return this.send(msg, `@${username} has been removed from admin users.`);
+      return `@${username} has been removed from admin users.`;
     } else {
-      return this.send(msg, `@${username} is not an admin user.`);
+      return `@${username} is not an admin user.`;
     }
   }
 }
